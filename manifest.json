@@ -1,0 +1,17 @@
+{
+    "name": "School Dental Records",
+    "short_name": "DentalRecords",
+    "description": "Complete Dental Examination System",
+    "start_url": "/dental-records/",
+    "scope": "/dental-records/",
+    "display": "standalone",
+    "background_color": "#ede7e3",
+    "theme_color": "#16697a",
+    "icons": [
+        {
+            "src": "/dental-records/icon.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}
