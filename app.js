@@ -1,12 +1,12 @@
 // ==================== CONFIGURATION ====================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec'; // Replace with your Apps Script URL
 const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 3; // Incremented to force upgrade
+const DB_VERSION = 4; // Increment to force upgrade
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
 let currentStudent = null;
-let dbInitPromise = null; // Prevent multiple initializations
+let dbInitPromise = null;
 const toothStatus = {};
 const toothCategories = {
     extraction: [],
@@ -15,7 +15,6 @@ const toothCategories = {
 
 // ==================== INDEXEDDB SETUP ====================
 async function openDB() {
-    // Return existing promise if already initializing
     if (dbInitPromise) {
         return dbInitPromise;
     }
@@ -34,18 +33,10 @@ async function openDB() {
             db = request.result;
             console.log('Database opened successfully');
             
-            // Handle database close events
             db.onclose = () => {
                 console.log('Database closed, resetting connection');
                 db = null;
                 dbInitPromise = null;
-            };
-            
-            db.onversionchange = () => {
-                db.close();
-                db = null;
-                dbInitPromise = null;
-                console.log('Database version changed, reopening...');
             };
             
             resolve(db);
@@ -55,21 +46,21 @@ async function openDB() {
             const db = event.target.result;
             console.log('Upgrading database from version', event.oldVersion, 'to', event.newVersion);
             
-            // Delete existing stores to ensure clean slate
+            // Delete existing stores
             const storeNames = Array.from(db.objectStoreNames);
             storeNames.forEach(storeName => {
                 db.deleteObjectStore(storeName);
                 console.log('Deleted store:', storeName);
             });
             
-            // Create pending store
+            // Create pending store WITHOUT any indexes first
             const pendingStore = db.createObjectStore('pending', { 
                 keyPath: 'id', 
                 autoIncrement: true 
             });
             console.log('Created pending store');
             
-            // Create students store with indexes
+            // Create students store with needed indexes
             const studentStore = db.createObjectStore('students', { 
                 keyPath: 'id', 
                 autoIncrement: true 
@@ -111,10 +102,6 @@ async function saveRecordOffline(record) {
                 console.error('Error saving offline:', request.error);
                 reject(request.error);
             };
-            
-            transaction.oncomplete = () => {
-                console.log('Transaction completed');
-            };
         });
     } catch (error) {
         console.error('Failed to save offline:', error);
@@ -122,6 +109,7 @@ async function saveRecordOffline(record) {
     }
 }
 
+// FIXED: Get pending records WITHOUT using non-existent index
 async function getPendingRecords() {
     try {
         await openDB();
@@ -134,11 +122,15 @@ async function getPendingRecords() {
             
             const transaction = db.transaction('pending', 'readonly');
             const store = transaction.objectStore('pending');
+            
+            // FIXED: Use getAll() instead of index
             const request = store.getAll();
             
             request.onsuccess = () => {
                 const allRecords = request.result || [];
+                // Filter in JavaScript instead of using index
                 const unsynced = allRecords.filter(record => !record.synced);
+                console.log(`Found ${unsynced.length} unsynced records out of ${allRecords.length}`);
                 resolve(unsynced);
             };
             
@@ -149,6 +141,30 @@ async function getPendingRecords() {
         });
     } catch (error) {
         console.error('Failed to get pending records:', error);
+        return [];
+    }
+}
+
+// FIXED: Get all records (for debugging)
+async function getAllRecords() {
+    try {
+        await openDB();
+        
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction('pending', 'readonly');
+            const store = transaction.objectStore('pending');
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                resolve(request.result || []);
+            };
+            
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    } catch (error) {
+        console.error('Failed to get all records:', error);
         return [];
     }
 }
@@ -189,6 +205,7 @@ async function updatePendingCount() {
                 pendingCount.textContent = pending.length;
                 pendingCount.classList.remove('hidden');
                 syncBtn.classList.remove('hidden');
+                console.log(`Pending count updated: ${pending.length}`);
             } else {
                 pendingCount.classList.add('hidden');
                 syncBtn.classList.add('hidden');
@@ -358,7 +375,6 @@ function resetTeeth() {
     initTeeth();
     
     document.querySelectorAll('.tooth-btn').forEach(btn => {
-        const toothNum = parseInt(btn.querySelector('.number').textContent);
         btn.className = 'tooth-btn normal';
         btn.querySelector('.status').textContent = 'N';
     });
@@ -433,7 +449,6 @@ function updateOnlineStatus() {
         statusIcon.textContent = '✅';
         statusText.textContent = 'You are online / Online ka';
         
-        // Try to sync when coming online
         setTimeout(() => {
             syncWithGoogleSheets().catch(console.error);
         }, 2000);
@@ -542,7 +557,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         updateOnlineStatus();
         await updatePendingCount();
         
-        // Check online status and sync if needed
         if (navigator.onLine) {
             const pending = await getPendingRecords();
             if (pending.length > 0) {
@@ -555,11 +569,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         showToast('⚠️ Database initialization error', 'error');
     }
     
-    // Monitor online/offline status
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     
-    // Form submit handler
     document.getElementById('dentalForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -605,7 +617,6 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     });
     
-    // Service Worker for PWA
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker registered'))
