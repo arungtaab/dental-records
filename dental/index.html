@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dental Records</title>
+    <title>Dental Records - DEBUG</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -11,16 +11,13 @@
             padding: 20px;
         }
         .container {
-            max-width: 500px;
+            max-width: 600px;
             margin: 0 auto;
             background: white;
             padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        .form-group {
-            margin-bottom: 20px;
-        }
+        .form-group { margin-bottom: 20px; }
         label {
             display: block;
             margin-bottom: 5px;
@@ -32,7 +29,6 @@
             padding: 10px;
             border: 2px solid #82c0cc;
             border-radius: 5px;
-            font-size: 16px;
         }
         button {
             background: #16697a;
@@ -40,190 +36,166 @@
             padding: 15px 30px;
             border: none;
             border-radius: 5px;
-            font-size: 16px;
             cursor: pointer;
             width: 100%;
+            margin: 5px 0;
         }
-        button:hover {
-            background: #489fb5;
-        }
-        #status {
+        #debug {
             margin-top: 20px;
             padding: 15px;
+            background: #f5f5f5;
+            border: 1px solid #ccc;
             border-radius: 5px;
-            text-align: center;
-            font-weight: bold;
-            display: none;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow: auto;
         }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            display: block !important;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block !important;
-        }
-        .info {
-            background: #d1ecf1;
-            color: #0c5460;
-            display: block !important;
-        }
+        .success { color: green; }
+        .error { color: red; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h2>🦷 Dental Examination Form</h2>
+        <h2>🦷 Dental Records - DEBUG MODE</h2>
         
-        <div id="status"></div>
+        <div id="debug">Ready. Click buttons to test...</div>
         
         <form id="dentalForm">
             <div class="form-group">
                 <label>Student Name</label>
-                <input type="text" id="studentName" name="studentName" required>
+                <input type="text" id="studentName" value="Test Student" required>
             </div>
             
             <div class="form-group">
                 <label>School</label>
-                <select id="school" name="school" required>
+                <select id="school">
                     <option value="JCES">JCES</option>
                     <option value="Boctol">Boctol</option>
                 </select>
             </div>
             
             <div class="form-group">
-                <label>Dental Procedures</label>
-                <textarea id="procedures" name="procedures" rows="3"></textarea>
+                <label>Procedures</label>
+                <textarea id="procedures">Test Procedure</textarea>
             </div>
             
             <div class="form-group">
                 <label>Remarks</label>
-                <textarea id="remarks" name="remarks" rows="3"></textarea>
+                <textarea id="remarks">Test Remarks</textarea>
             </div>
             
-            <button type="submit">💾 Save to Google Sheets</button>
+            <button type="submit">💾 Submit Form</button>
         </form>
         
-        <button id="testBtn" style="background: #ffc107; color: #000; margin-top: 10px;">🧪 Test Connection</button>
+        <button id="testGet">🔄 Test GET Request</button>
+        <button id="testPost">📤 Test POST Request</button>
+        <button id="testJson">📦 Test JSON Request</button>
     </div>
 
     <script>
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
         
-        // Save using FormData - this works best with Apps Script
-        async function saveToSheet(record) {
-            const status = document.getElementById('status');
-            
+        function addToDebug(message, isError = false) {
+            const debug = document.getElementById('debug');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = isError ? 'red' : 'green';
+            debug.innerHTML += `\n[${timestamp}] ${message}`;
+            debug.scrollTop = debug.scrollHeight;
+            console.log(message);
+        }
+
+        // Test 1: Simple GET request
+        async function testGet() {
+            addToDebug('🔄 Testing GET request...');
             try {
-                status.className = 'info';
-                status.textContent = 'Sending data...';
-                
-                // Create form data
+                const response = await fetch(APPS_SCRIPT_URL);
+                const text = await response.text();
+                addToDebug(`✅ GET Response: ${text.substring(0, 200)}`);
+            } catch (error) {
+                addToDebug(`❌ GET Error: ${error.message}`, true);
+            }
+        }
+
+        // Test 2: POST with FormData (like form submission)
+        async function testPost() {
+            addToDebug('📤 Testing POST with FormData...');
+            try {
                 const formData = new FormData();
-                formData.append('studentName', record.studentName);
-                formData.append('school', record.school);
-                formData.append('procedures', record.procedures);
-                formData.append('remarks', record.remarks);
+                formData.append('studentName', 'Test Student');
+                formData.append('school', 'JCES');
+                formData.append('procedures', 'Test Procedure');
+                formData.append('remarks', 'Test Remarks');
                 
-                // Send as form data (not JSON)
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    body: formData  // This automatically sets correct content-type
+                    body: formData
                 });
                 
-                // Try to get response
                 const text = await response.text();
-                console.log('Raw response:', text);
-                
-                // Try to parse as JSON
-                let result;
-                try {
-                    result = JSON.parse(text);
-                } catch (e) {
-                    // If not JSON, show the raw response
-                    status.className = 'info';
-                    status.textContent = 'Response: ' + text.substring(0, 100);
-                    return false;
-                }
-                
-                if (result.success) {
-                    status.className = 'success';
-                    status.textContent = '✅ ' + (result.message || 'Saved to Google Sheets!');
-                    return true;
-                } else {
-                    throw new Error(result.error || 'Unknown error');
-                }
-                
+                addToDebug(`✅ POST Response: ${text.substring(0, 200)}`);
             } catch (error) {
-                console.error('Save failed:', error);
-                status.className = 'error';
-                status.textContent = '❌ Error: ' + error.message;
-                return false;
+                addToDebug(`❌ POST Error: ${error.message}`, true);
             }
         }
-        
-        // Test connection with GET
-        async function testConnection() {
-            const status = document.getElementById('status');
-            
+
+        // Test 3: POST with JSON
+        async function testJson() {
+            addToDebug('📦 Testing POST with JSON...');
             try {
-                status.className = 'info';
-                status.textContent = 'Testing connection...';
+                const data = {
+                    studentName: 'Test Student',
+                    school: 'JCES',
+                    procedures: 'Test Procedure',
+                    remarks: 'Test Remarks'
+                };
                 
-                // Simple GET request
                 const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'GET'
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
                 });
                 
                 const text = await response.text();
-                console.log('GET response:', text);
-                
-                // Try to parse
-                try {
-                    const result = JSON.parse(text);
-                    status.className = 'success';
-                    status.textContent = '✅ Connected! ' + (result.message || 'Script is running');
-                } catch (e) {
-                    status.className = 'success';
-                    status.textContent = '✅ Connected! (Raw response: ' + text.substring(0, 50) + '...)';
-                }
-                
+                addToDebug(`✅ JSON Response: ${text.substring(0, 200)}`);
             } catch (error) {
-                console.error('Test failed:', error);
-                status.className = 'error';
-                status.textContent = '❌ Connection failed: ' + error.message;
+                addToDebug(`❌ JSON Error: ${error.message}`, true);
             }
         }
-        
-        // Form submit
+
+        // Form submit handler
         document.getElementById('dentalForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const record = {
-                studentName: document.getElementById('studentName').value,
-                school: document.getElementById('school').value,
-                procedures: document.getElementById('procedures').value,
-                remarks: document.getElementById('remarks').value
-            };
+            const formData = new FormData(e.target);
+            addToDebug('📝 Form submitted with data:');
+            for (let [key, value] of formData.entries()) {
+                addToDebug(`   ${key}: ${value}`);
+            }
             
-            const success = await saveToSheet(record);
-            
-            if (success) {
-                // Optional: clear form
-                // e.target.reset();
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const text = await response.text();
+                addToDebug(`✅ Server response: ${text.substring(0, 200)}`);
+            } catch (error) {
+                addToDebug(`❌ Error: ${error.message}`, true);
             }
         });
-        
-        // Test button
-        document.getElementById('testBtn').addEventListener('click', testConnection);
-        
-        // Check online status
+
+        // Button handlers
+        document.getElementById('testGet').addEventListener('click', testGet);
+        document.getElementById('testPost').addEventListener('click', testPost);
+        document.getElementById('testJson').addEventListener('click', testJson);
+
+        // Clear debug on page load
         window.addEventListener('load', () => {
-            if (!navigator.onLine) {
-                document.getElementById('status').className = 'error';
-                document.getElementById('status').textContent = '📴 You are offline';
-            }
+            document.getElementById('debug').innerHTML = 'Ready. Click buttons to test...';
         });
     </script>
 </body>
