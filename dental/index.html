@@ -3,85 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Dental Records - Offline Sync</title>
+    <title>Dental Records</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: Arial, sans-serif;
             background: #ede7e3;
             padding: 20px;
         }
-        
         .container {
-            max-width: 600px;
+            max-width: 500px;
             margin: 0 auto;
-        }
-        
-        .header {
-            background: #16697a;
-            color: white;
-            padding: 20px;
-            border-radius: 10px 10px 0 0;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        
-        .status {
-            padding: 15px;
-            margin: 10px 0 20px 0;
-            border-radius: 5px;
-            font-weight: bold;
-            text-align: center;
-        }
-        
-        .online { 
-            background: #d4edda; 
-            color: #155724; 
-            border-left: 5px solid #28a745;
-        }
-        
-        .offline { 
-            background: #fff3cd; 
-            color: #856404; 
-            border-left: 5px solid #ffc107;
-        }
-        
-        .form-card {
             background: white;
-            padding: 25px;
+            padding: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        
         .form-group {
             margin-bottom: 20px;
         }
-        
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
             color: #16697a;
         }
-        
         input, select, textarea {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             border: 2px solid #82c0cc;
             border-radius: 5px;
             font-size: 16px;
         }
-        
-        input:focus, select:focus, textarea:focus {
-            outline: none;
-            border-color: #489fb5;
-        }
-        
         button {
             background: #16697a;
             color: white;
@@ -89,510 +41,190 @@
             border: none;
             border-radius: 5px;
             font-size: 16px;
-            font-weight: bold;
             cursor: pointer;
             width: 100%;
-            transition: background 0.3s;
         }
-        
         button:hover {
             background: #489fb5;
         }
-        
-        button:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .pending-section {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
+        #status {
             margin-top: 20px;
-        }
-        
-        .pending-item {
-            background: #f8f9fa;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
-            border-left: 3px solid #ffc107;
-        }
-        
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: #333;
-            color: white;
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 5px;
             text-align: center;
-            animation: slideUp 0.3s;
-            z-index: 1000;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        
-        @keyframes slideUp {
-            from { transform: translateY(100%); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        .hidden {
+            font-weight: bold;
             display: none;
         }
-        
-        .sync-btn {
-            background: #28a745;
-            margin-top: 10px;
+        .success {
+            background: #d4edda;
+            color: #155724;
+            display: block !important;
         }
-        
-        .sync-btn:hover {
-            background: #218838;
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            display: block !important;
         }
-        
-        .pending-count {
-            background: #ffc107;
-            color: #000;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-            display: inline-block;
-            margin-left: 10px;
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block !important;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
-            <h1>🦷 Student Dental Records</h1>
-            <p>Offline-Ready System</p>
-        </div>
+        <h2>🦷 Dental Examination Form</h2>
         
-        <!-- Status Bar -->
-        <div id="onlineStatus" class="status online">
-            <span id="statusIcon">✅</span>
-            <span id="statusText">You are online - saving to Google Sheets</span>
-            <span id="pendingCount" class="pending-count hidden">0</span>
-        </div>
+        <div id="status"></div>
         
-        <!-- Main Form -->
-        <div class="form-card">
-            <h2>Dental Examination Form</h2>
+        <form id="dentalForm">
+            <div class="form-group">
+                <label>Student Name</label>
+                <input type="text" id="studentName" name="studentName" required>
+            </div>
             
-            <form id="dentalForm">
-                <div class="form-group">
-                    <label>Student Name</label>
-                    <input type="text" id="studentName" placeholder="Enter full name" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Date of Birth</label>
-                    <input type="text" id="dob" placeholder="DD/MM/YYYY" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>School</label>
-                    <select id="school" required>
-                        <option value="">Select School</option>
-                        <option value="JCES">JCES</option>
-                        <option value="Boctol">Boctol</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>Dental Procedures</label>
-                    <textarea id="procedures" rows="3" placeholder="Enter procedures performed..."></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <label>Remarks</label>
-                    <textarea id="remarks" rows="3" placeholder="Enter any remarks..."></textarea>
-                </div>
-                
-                <button type="submit" id="saveBtn">💾 Save Record</button>
-            </form>
+            <div class="form-group">
+                <label>School</label>
+                <select id="school" name="school" required>
+                    <option value="JCES">JCES</option>
+                    <option value="Boctol">Boctol</option>
+                </select>
+            </div>
             
-            <button id="syncBtn" class="sync-btn hidden">🔄 Sync Pending Records</button>
-        </div>
+            <div class="form-group">
+                <label>Dental Procedures</label>
+                <textarea id="procedures" name="procedures" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Remarks</label>
+                <textarea id="remarks" name="remarks" rows="3"></textarea>
+            </div>
+            
+            <button type="submit">💾 Save to Google Sheets</button>
+        </form>
         
-        <!-- Pending Records Section -->
-        <div id="pendingSection" class="pending-section hidden">
-            <h3>📋 Pending Offline Records</h3>
-            <div id="pendingList"></div>
-        </div>
+        <button id="testBtn" style="background: #ffc107; color: #000; margin-top: 10px;">🧪 Test Connection</button>
     </div>
-    
-    <!-- Toast Notification -->
-    <div id="toast" class="toast hidden"></div>
 
     <script>
-        // ==================== CONFIGURATION ====================
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
-        const DB_NAME = 'DentalOfflineDB';
-        const DB_VERSION = 1;
         
-        // ==================== INDEXEDDB SETUP ====================
-        let db;
-        
-        function openDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
-                request.onerror = () => {
-                    console.error('Database error:', request.error);
-                    reject(request.error);
-                };
-                
-                request.onsuccess = () => {
-                    db = request.result;
-                    console.log('Database opened successfully');
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    
-                    if (!db.objectStoreNames.contains('pending')) {
-                        const store = db.createObjectStore('pending', { 
-                            keyPath: 'id', 
-                            autoIncrement: true 
-                        });
-                        store.createIndex('timestamp', 'timestamp');
-                        store.createIndex('synced', 'synced');
-                    }
-                    
-                    console.log('Database setup complete');
-                };
-            });
-        }
-        
-        // ==================== OFFLINE STORAGE ====================
-        async function saveRecordOffline(record) {
-            await openDB();
+        // Save using FormData - this works best with Apps Script
+        async function saveToSheet(record) {
+            const status = document.getElementById('status');
             
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction('pending', 'readwrite');
-                const store = transaction.objectStore('pending');
+            try {
+                status.className = 'info';
+                status.textContent = 'Sending data...';
                 
-                const recordToSave = {
-                    ...record,
-                    timestamp: new Date().toISOString(),
-                    synced: false
-                };
+                // Create form data
+                const formData = new FormData();
+                formData.append('studentName', record.studentName);
+                formData.append('school', record.school);
+                formData.append('procedures', record.procedures);
+                formData.append('remarks', record.remarks);
                 
-                const request = store.add(recordToSave);
-                
-                request.onsuccess = () => {
-                    console.log('Record saved offline with ID:', request.result);
-                    resolve({ success: true, id: request.result });
-                };
-                
-                request.onerror = () => {
-                    console.error('Error saving offline:', request.error);
-                    reject(request.error);
-                };
-            });
-        }
-        
-        async function getPendingRecords() {
-            await openDB();
-            
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction('pending', 'readonly');
-                const store = transaction.objectStore('pending');
-                const request = store.getAll();
-                
-                request.onsuccess = () => {
-                    resolve(request.result);
-                };
-                
-                request.onerror = () => {
-                    reject(request.error);
-                };
-            });
-        }
-        
-        async function deletePendingRecord(id) {
-            await openDB();
-            
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction('pending', 'readwrite');
-                const store = transaction.objectStore('pending');
-                const request = store.delete(id);
-                
-                request.onsuccess = () => {
-                    resolve(true);
-                };
-                
-                request.onerror = () => {
-                    reject(request.error);
-                };
-            });
-        }
-        
-        // ==================== SYNC WITH GOOGLE SHEETS ====================
-        async function syncWithGoogleSheets() {
-            if (!navigator.onLine) {
-                showToast('📴 You are offline. Cannot sync.', 'offline');
-                return;
-            }
-            
-            const pendingRecords = await getPendingRecords();
-            
-            if (pendingRecords.length === 0) {
-                showToast('✅ No pending records to sync', 'success');
-                return;
-            }
-            
-            showToast(`🔄 Syncing ${pendingRecords.length} records...`, 'syncing');
-            
-            let successCount = 0;
-            let failCount = 0;
-            
-            for (const record of pendingRecords) {
-                try {
-                    // Create a form to submit (works better with Apps Script)
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = APPS_SCRIPT_URL;
-                    form.target = 'hiddenIframe';
-                    form.style.display = 'none';
-                    
-                    // Add data as hidden field
-                    const dataField = document.createElement('input');
-                    dataField.type = 'hidden';
-                    dataField.name = 'data';
-                    dataField.value = JSON.stringify(record);
-                    form.appendChild(dataField);
-                    
-                    // Create hidden iframe for response
-                    const iframe = document.createElement('iframe');
-                    iframe.name = 'hiddenIframe';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-                    
-                    // Wait for submission
-                    await new Promise((resolve) => {
-                        iframe.onload = resolve;
-                        document.body.appendChild(form);
-                        form.submit();
-                        
-                        // Timeout after 5 seconds
-                        setTimeout(resolve, 5000);
-                    });
-                    
-                    // Clean up
-                    document.body.removeChild(form);
-                    document.body.removeChild(iframe);
-                    
-                    // Delete from pending
-                    await deletePendingRecord(record.id);
-                    successCount++;
-                    
-                } catch (error) {
-                    console.error('Sync failed for record', record.id, error);
-                    failCount++;
-                }
-            }
-            
-            // Update UI
-            await updatePendingUI();
-            
-            if (failCount === 0) {
-                showToast(`✅ Successfully synced ${successCount} records!`, 'success');
-            } else {
-                showToast(`⚠️ Synced ${successCount}, failed ${failCount}`, 'warning');
-            }
-        }
-        
-        // ==================== SAVE RECORD (ONLINE/OFFLINE) ====================
-        async function saveRecord(record) {
-            if (navigator.onLine) {
-                try {
-                    // Try to save online first
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = APPS_SCRIPT_URL;
-                    form.target = 'hiddenIframe';
-                    form.style.display = 'none';
-                    
-                    const dataField = document.createElement('input');
-                    dataField.type = 'hidden';
-                    dataField.name = 'data';
-                    dataField.value = JSON.stringify(record);
-                    form.appendChild(dataField);
-                    
-                    const iframe = document.createElement('iframe');
-                    iframe.name = 'hiddenIframe';
-                    iframe.style.display = 'none';
-                    document.body.appendChild(iframe);
-                    
-                    await new Promise((resolve) => {
-                        iframe.onload = resolve;
-                        document.body.appendChild(form);
-                        form.submit();
-                        setTimeout(resolve, 3000);
-                    });
-                    
-                    document.body.removeChild(form);
-                    document.body.removeChild(iframe);
-                    
-                    showToast('✅ Record saved to Google Sheets!', 'success');
-                    return { success: true, online: true };
-                    
-                } catch (error) {
-                    console.log('Online save failed, saving offline:', error);
-                    await saveRecordOffline(record);
-                    showToast('📱 Saved offline (will sync later)', 'offline');
-                    return { success: true, online: false };
-                }
-            } else {
-                await saveRecordOffline(record);
-                showToast('📱 Saved offline (will sync later)', 'offline');
-                return { success: true, online: false };
-            }
-        }
-        
-        // ==================== UI UPDATES ====================
-        async function updatePendingUI() {
-            const pendingRecords = await getPendingRecords();
-            const pendingSection = document.getElementById('pendingSection');
-            const pendingList = document.getElementById('pendingList');
-            const pendingCount = document.getElementById('pendingCount');
-            const syncBtn = document.getElementById('syncBtn');
-            
-            if (pendingRecords.length > 0) {
-                pendingSection.classList.remove('hidden');
-                syncBtn.classList.remove('hidden');
-                pendingCount.classList.remove('hidden');
-                pendingCount.textContent = pendingRecords.length;
-                
-                let html = '';
-                pendingRecords.slice(-5).reverse().forEach(record => {
-                    html += `
-                        <div class="pending-item">
-                            <strong>${record.studentName || 'Unknown'}</strong><br>
-                            <small>${new Date(record.timestamp).toLocaleString()}</small>
-                        </div>
-                    `;
+                // Send as form data (not JSON)
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData  // This automatically sets correct content-type
                 });
                 
-                if (pendingRecords.length > 5) {
-                    html += `<p>... and ${pendingRecords.length - 5} more</p>`;
+                // Try to get response
+                const text = await response.text();
+                console.log('Raw response:', text);
+                
+                // Try to parse as JSON
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    // If not JSON, show the raw response
+                    status.className = 'info';
+                    status.textContent = 'Response: ' + text.substring(0, 100);
+                    return false;
                 }
                 
-                pendingList.innerHTML = html;
-            } else {
-                pendingSection.classList.add('hidden');
-                syncBtn.classList.add('hidden');
-                pendingCount.classList.add('hidden');
-            }
-        }
-        
-        function updateOnlineStatus() {
-            const statusDiv = document.getElementById('onlineStatus');
-            const statusIcon = document.getElementById('statusIcon');
-            const statusText = document.getElementById('statusText');
-            
-            if (navigator.onLine) {
-                statusDiv.className = 'status online';
-                statusIcon.textContent = '✅';
-                statusText.textContent = 'You are online - saving to Google Sheets';
+                if (result.success) {
+                    status.className = 'success';
+                    status.textContent = '✅ ' + (result.message || 'Saved to Google Sheets!');
+                    return true;
+                } else {
+                    throw new Error(result.error || 'Unknown error');
+                }
                 
-                // Try to sync when coming online
-                setTimeout(syncWithGoogleSheets, 2000);
-            } else {
-                statusDiv.className = 'status offline';
-                statusIcon.textContent = '📴';
-                statusText.textContent = 'You are offline - saving locally';
+            } catch (error) {
+                console.error('Save failed:', error);
+                status.className = 'error';
+                status.textContent = '❌ Error: ' + error.message;
+                return false;
             }
-            
-            updatePendingUI();
         }
         
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast';
+        // Test connection with GET
+        async function testConnection() {
+            const status = document.getElementById('status');
             
-            if (type === 'success') toast.style.background = '#28a745';
-            if (type === 'offline') toast.style.background = '#ffc107';
-            if (type === 'syncing') toast.style.background = '#17a2b8';
-            if (type === 'error') toast.style.background = '#dc3545';
-            
-            toast.classList.remove('hidden');
-            
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3000);
+            try {
+                status.className = 'info';
+                status.textContent = 'Testing connection...';
+                
+                // Simple GET request
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'GET'
+                });
+                
+                const text = await response.text();
+                console.log('GET response:', text);
+                
+                // Try to parse
+                try {
+                    const result = JSON.parse(text);
+                    status.className = 'success';
+                    status.textContent = '✅ Connected! ' + (result.message || 'Script is running');
+                } catch (e) {
+                    status.className = 'success';
+                    status.textContent = '✅ Connected! (Raw response: ' + text.substring(0, 50) + '...)';
+                }
+                
+            } catch (error) {
+                console.error('Test failed:', error);
+                status.className = 'error';
+                status.textContent = '❌ Connection failed: ' + error.message;
+            }
         }
         
-        // ==================== FORM HANDLING ====================
+        // Form submit
         document.getElementById('dentalForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            const saveBtn = document.getElementById('saveBtn');
-            saveBtn.disabled = true;
-            saveBtn.textContent = '💾 Saving...';
-            
             const record = {
                 studentName: document.getElementById('studentName').value,
-                dob: document.getElementById('dob').value,
                 school: document.getElementById('school').value,
                 procedures: document.getElementById('procedures').value,
                 remarks: document.getElementById('remarks').value
             };
             
-            await saveRecord(record);
+            const success = await saveToSheet(record);
             
-            e.target.reset();
-            saveBtn.disabled = false;
-            saveBtn.textContent = '💾 Save Record';
-            
-            await updatePendingUI();
-        });
-        
-        // Sync button click handler
-        document.getElementById('syncBtn').addEventListener('click', async () => {
-            const syncBtn = document.getElementById('syncBtn');
-            syncBtn.disabled = true;
-            syncBtn.textContent = '🔄 Syncing...';
-            
-            await syncWithGoogleSheets();
-            
-            syncBtn.disabled = false;
-            syncBtn.textContent = '🔄 Sync Pending Records';
-        });
-        
-        // ==================== INITIALIZATION ====================
-        window.addEventListener('load', async () => {
-            await openDB();
-            updateOnlineStatus();
-            await updatePendingUI();
-            
-            // Check if we have pending records and are online
-            if (navigator.onLine) {
-                const pending = await getPendingRecords();
-                if (pending.length > 0) {
-                    showToast(`📤 Found ${pending.length} pending records to sync`, 'syncing');
-                    setTimeout(syncWithGoogleSheets, 3000);
-                }
+            if (success) {
+                // Optional: clear form
+                // e.target.reset();
             }
         });
         
-        // Monitor online/offline status
-        window.addEventListener('online', updateOnlineStatus);
-        window.addEventListener('offline', updateOnlineStatus);
+        // Test button
+        document.getElementById('testBtn').addEventListener('click', testConnection);
         
-        // ==================== SERVICE WORKER (for PWA) ====================
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Service Worker registered'))
-                .catch(err => console.log('Service Worker error:', err));
-        }
+        // Check online status
+        window.addEventListener('load', () => {
+            if (!navigator.onLine) {
+                document.getElementById('status').className = 'error';
+                document.getElementById('status').textContent = '📴 You are offline';
+            }
+        });
     </script>
 </body>
 </html>
