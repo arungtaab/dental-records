@@ -3,113 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>School Dental Tools</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Dental Records</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: Arial, sans-serif;
-            background: #16697a;
+            background: #ede7e3;
             padding: 20px;
         }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .tabs {
-            display: flex;
-            background: #ede7e3;
-        }
-        .tab {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            background: none;
-            cursor: pointer;
-            font-size: 16px;
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin-bottom: 20px; }
+        label {
+            display: block;
+            margin-bottom: 5px;
             font-weight: bold;
             color: #16697a;
-            border-bottom: 3px solid transparent;
         }
-        .tab.active {
-            border-bottom: 3px solid #ffa62b;
-            background: white;
-        }
-        .iframe-container {
+        input, select, textarea {
             width: 100%;
-            height: 800px;
-            position: relative;
+            padding: 10px;
+            border: 2px solid #82c0cc;
+            border-radius: 5px;
         }
-        iframe {
-            width: 100%;
-            height: 100%;
+        button {
+            background: #16697a;
+            color: white;
+            padding: 15px 30px;
             border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
         }
-        .loading {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        button:hover { background: #489fb5; }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
         }
-        .hidden { display: none; }
-        .spinner {
-            border: 4px solid #82c0cc;
-            border-top: 4px solid #16697a;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .online { background: #d4edda; color: #155724; }
+        .offline { background: #fff3cd; color: #856404; }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="tabs">
-            <button class="tab active" onclick="switchTab(1)">🦷 Dental</button>
-            <button class="tab" onclick="switchTab(2)">📊 Tool 2</button>
-            <button class="tab" onclick="switchTab(3)">📈 Tool 3</button>
-            <button class="tab" onclick="switchTab(4)">🎯 Tool 4</button>
-        </div>
+        <div id="onlineStatus" class="status online">✅ You are online</div>
         
-        <div class="iframe-container" id="iframeContainer">
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
+        <h2>🦷 Dental Examination Form</h2>
+        
+        <form id="dentalForm">
+            <div class="form-group">
+                <label>Student Name</label>
+                <input type="text" id="studentName" required>
             </div>
-            <iframe id="mainFrame" src="dental/"></iframe>
-        </div>
+            
+            <div class="form-group">
+                <label>Date of Birth</label>
+                <input type="text" id="dob" placeholder="DD/MM/YYYY" required>
+            </div>
+            
+            <div class="form-group">
+                <label>School</label>
+                <select id="school">
+                    <option value="JCES">JCES</option>
+                    <option value="Boctol">Boctol</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Dental Procedures</label>
+                <textarea id="procedures" rows="3"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>Remarks</label>
+                <textarea id="remarks" rows="3"></textarea>
+            </div>
+            
+            <button type="submit">Save Record</button>
+        </form>
     </div>
 
     <script>
-        const tabs = ['dental/', 'component2/', 'component3/', 'component4/'];
+        // Your Apps Script Web App URL from Step 1
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
         
-        function switchTab(index) {
-            document.querySelectorAll('.tab').forEach((tab, i) => {
-                if (i === index-1) tab.classList.add('active');
-                else tab.classList.remove('active');
+        // Database name for offline storage [citation:3]
+        const DB_NAME = 'DentalOfflineDB';
+        let db;
+
+        // Open IndexedDB for offline storage
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('pending')) {
+                        db.createObjectStore('pending', { 
+                            keyPath: 'id', 
+                            autoIncrement: true 
+                        });
+                    }
+                };
+            });
+        }
+
+        // Check online status
+        function updateOnlineStatus() {
+            const statusDiv = document.getElementById('onlineStatus');
+            if (navigator.onLine) {
+                statusDiv.className = 'status online';
+                statusDiv.innerHTML = '✅ You are online - saving to Google Sheets';
+                syncPendingRecords(); // Try to sync when online
+            } else {
+                statusDiv.className = 'status offline';
+                statusDiv.innerHTML = '📴 You are offline - saving locally';
+            }
+        }
+
+        // Save record (works both online and offline) [citation:3][citation:4]
+        async function saveRecord(record) {
+            await openDB();
+            
+            if (navigator.onLine) {
+                // Online - try to save to Google Sheets
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({
+                            action: 'save',
+                            record: JSON.stringify(record)
+                        })
+                    });
+                    
+                    alert('✅ Record saved to Google Sheets!');
+                } catch (error) {
+                    // If online save fails, save offline
+                    await saveOffline(record);
+                }
+            } else {
+                // Offline - save locally
+                await saveOffline(record);
+            }
+        }
+
+        // Save record offline in IndexedDB [citation:3]
+        async function saveOffline(record) {
+            const transaction = db.transaction('pending', 'readwrite');
+            const store = transaction.objectStore('pending');
+            
+            await store.add({
+                ...record,
+                timestamp: new Date().toISOString(),
+                synced: false
             });
             
-            document.getElementById('loading').classList.remove('hidden');
-            document.getElementById('mainFrame').src = tabs[index-1];
+            alert('📱 Saved offline! Will sync when internet returns.');
+            
+            // Register background sync [citation:3][citation:7]
+            if ('serviceWorker' in navigator && 'SyncManager' in window) {
+                const registration = await navigator.serviceWorker.ready;
+                await registration.sync.register('sync-dental');
+            }
         }
-        
-        document.getElementById('mainFrame').onload = function() {
-            document.getElementById('loading').classList.add('hidden');
-        };
 
-        // Register service worker for offline [citation:3]
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js')
-                .then(reg => console.log('Service Worker registered'))
-                .catch(err => console.log('Service Worker error:', err));
+        // Sync pending records when online [citation:3]
+        async function syncPendingRecords() {
+            if (!navigator.onLine) return;
+            
+            await openDB();
+            const transaction = db.transaction('pending', 'readonly');
+            const store = transaction.objectStore('pending');
+            const request = store.getAll();
+            
+            request.onsuccess = async () => {
+                const pending = request.result;
+                
+                for (const record of pending) {
+                    try {
+                        await fetch(APPS_SCRIPT_URL, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            body: new URLSearchParams({
+                                action: 'save',
+                                record: JSON.stringify(record)
+                            })
+                        });
+                        
+                        // Delete after successful sync
+                        const deleteTx = db.transaction('pending', 'readwrite');
+                        deleteTx.objectStore('pending').delete(record.id);
+                    } catch (error) {
+                        console.log('Sync failed, will retry later');
+                    }
+                }
+            };
+        }
+
+        // Form submission
+        document.getElementById('dentalForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const record = {
+                studentName: document.getElementById('studentName').value,
+                dob: document.getElementById('dob').value,
+                school: document.getElementById('school').value,
+                procedures: document.getElementById('procedures').value,
+                remarks: document.getElementById('remarks').value
+            };
+            
+            await saveRecord(record);
+            e.target.reset();
+        });
+
+        // Monitor online/offline status
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        updateOnlineStatus();
+        
+        // Try to sync when page loads
+        if (navigator.onLine) {
+            syncPendingRecords();
         }
     </script>
 </body>
