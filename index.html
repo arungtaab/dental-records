@@ -108,6 +108,10 @@
             min-height: 600px;
         }
 
+        .hidden {
+            display: none !important;
+        }
+
         /* Search Section */
         .search-section {
             background: var(--background);
@@ -194,6 +198,20 @@
             gap: 10px;
             flex-wrap: wrap;
         }
+
+        /* Status Messages */
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
 
         /* Student Info Card */
         .student-card {
@@ -344,20 +362,6 @@
             border-radius: 5px;
         }
 
-        /* Status Messages */
-        .status {
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .success { background: #d4edda; color: #155724; }
-        .error { background: #f8d7da; color: #721c24; }
-        .info { background: #d1ecf1; color: #0c5460; }
-        .warning { background: #fff3cd; color: #856404; }
-
         /* Previous Records */
         .records-list {
             max-height: 300px;
@@ -385,8 +389,24 @@
             color: var(--primary);
         }
 
-        .hidden {
-            display: none;
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid var(--light);
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         @media (max-width: 768px) {
@@ -443,7 +463,7 @@
         <div class="content">
             <!-- Tab 1: Dental Records -->
             <div id="tab1" class="tab-content">
-                <!-- Your Dental Records System Goes Here -->
+                <!-- Search Section -->
                 <div class="search-section">
                     <h3>
                         <span class="en">🔍 Search Student / Maghanap ng Mag-aaral</span>
@@ -489,13 +509,21 @@
                             <span class="en">New Record / Bagong Tala</span>
                         </button>
                     </div>
+
+                    <!-- Search Status -->
+                    <div id="searchStatus" class="hidden"></div>
+                    
+                    <!-- Loading -->
+                    <div id="searchLoading" class="loading hidden">
+                        <div class="spinner"></div>
+                        <p>Searching / Naghahanap...</p>
+                    </div>
                 </div>
 
                 <!-- Student Info / Impormasyon ng Mag-aaral -->
                 <div id="studentInfo" class="student-card hidden">
                     <div class="student-header">
                         <span class="student-name" id="displayName"></span>
-                        <span class="student-age" id="displayAge"></span>
                     </div>
                     
                     <div class="info-grid">
@@ -512,6 +540,13 @@
                                 <span class="en">Sex / Kasarian</span>
                             </div>
                             <div id="displaySex"></div>
+                        </div>
+                        
+                        <div class="info-item">
+                            <div class="info-label">
+                                <span class="en">Age / Edad</span>
+                            </div>
+                            <div id="displayAge"></div>
                         </div>
                         
                         <div class="info-item">
@@ -574,24 +609,27 @@
                     <div class="legend">
                         <div class="legend-item">
                             <div class="legend-color" style="background: var(--tooth-normal);"></div>
-                            <span class="en">Normal</span>
+                            <span class="en">Normal (N)</span>
                             <span class="tl">Normal</span>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: var(--tooth-decayed);"></div>
-                            <span class="en">Decayed / Sirang</span>
+                            <span class="en">Decayed (O)</span>
+                            <span class="tl">Sirang</span>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: var(--tooth-filled);"></div>
-                            <span class="en">Filled / Pasta</span>
+                            <span class="en">Filled (F)</span>
+                            <span class="tl">Pasta</span>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: var(--tooth-missing);"></div>
-                            <span class="en">Missing / Wala</span>
+                            <span class="en">Missing (M)</span>
+                            <span class="tl">Wala</span>
                         </div>
                         <div class="legend-item">
                             <div class="legend-color" style="background: var(--tooth-extract);"></div>
-                            <span class="en">For Extraction</span>
+                            <span class="en">Extract (X)</span>
                             <span class="tl">Bubunutin</span>
                         </div>
                     </div>
@@ -685,7 +723,7 @@
                         <div class="info-grid">
                             <div class="form-group">
                                 <label>
-                                    <span class="en">Tooth Extraction</span>
+                                    <span class="en">Tooth Extraction (FDI)</span>
                                     <span class="tl">Pagbunot ng Ngipin</span>
                                 </label>
                                 <input type="text" id="toothExtraction" readonly placeholder="Click teeth above / Pindutin ang ngipin sa itaas">
@@ -693,10 +731,18 @@
                             
                             <div class="form-group">
                                 <label>
-                                    <span class="en">Tooth Filling</span>
+                                    <span class="en">Tooth Filling (FDI)</span>
                                     <span class="tl">Pagpasta ng Ngipin</span>
                                 </label>
                                 <input type="text" id="toothFilling" readonly placeholder="Click teeth above / Pindutin ang ngipin sa itaas">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <span class="en">Cleaning (FDI)</span>
+                                    <span class="tl">Paglilinis</span>
+                                </label>
+                                <input type="text" id="toothCleaning" placeholder="e.g., 11-18, 21-28">
                             </div>
                             
                             <div class="form-group">
@@ -721,6 +767,18 @@
                                     <option value="Hindi">Hindi / No</option>
                                 </select>
                             </div>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <span class="en">Severe Childhood Cavities</span>
+                                    <span class="tl">Malubhang Karies sa Bata</span>
+                                </label>
+                                <select id="severeCavities">
+                                    <option value="">Select / Pumili</option>
+                                    <option value="Oo">Oo / Yes</option>
+                                    <option value="Hindi">Hindi / No</option>
+                                </select>
+                            </div>
                         </div>
                         
                         <div class="form-group">
@@ -728,14 +786,22 @@
                                 <span class="en">Oral Exam Notes</span>
                                 <span class="tl">Mga Tala ng Pagsusuri</span>
                             </label>
-                            <textarea id="oralNotes" rows="3"></textarea>
+                            <textarea id="oralNotes" rows="3" placeholder="Enter examination findings / Ilagay ang mga natuklasan"></textarea>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>
+                                <span class="en">Cleaning Notes</span>
+                                <span class="tl">Mga Tala sa Paglilinis</span>
+                            </label>
+                            <textarea id="cleaningNotes" rows="2" placeholder="Enter cleaning notes / Ilagay ang tala sa paglilinis"></textarea>
                         </div>
                         
                         <div class="form-group">
                             <label>
                                 <span class="en">Remarks / Mga Puna</span>
                             </label>
-                            <textarea id="remarks" rows="3"></textarea>
+                            <textarea id="remarks" rows="3" placeholder="Enter remarks / Ilagay ang mga puna"></textarea>
                         </div>
                         
                         <div class="btn-group">
@@ -745,6 +811,9 @@
                             </button>
                         </div>
                     </form>
+                    
+                    <!-- Save Status -->
+                    <div id="saveStatus" class="hidden"></div>
                 </div>
 
                 <!-- Previous Records -->
@@ -795,8 +864,8 @@
     </div>
 
     <script>
-        // Apps Script URL
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
+        // ==================== CONFIGURATION ====================
+        const APPS_SCRIPT_URL = 'YOUR_WEB_APP_URL_HERE'; // Replace with your Apps Script URL
         
         // Current student data
         let currentStudent = null;
@@ -808,26 +877,22 @@
             filling: []
         };
 
-        // Initialize teeth
+        // ==================== TEETH FUNCTIONS ====================
         function initTeeth() {
-            const permanentTeeth = [
-                // Upper
+            const allTeeth = [
+                // Permanent
                 18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
-                // Lower
-                38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48
-            ];
-            
-            const babyTeeth = [
+                38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48,
+                // Baby
                 55,54,53,52,51,61,62,63,64,65,
                 75,74,73,72,71,81,82,83,84,85
             ];
             
-            [...permanentTeeth, ...babyTeeth].forEach(tooth => {
-                toothStatus[tooth] = 'N'; // N = Normal
+            allTeeth.forEach(tooth => {
+                toothStatus[tooth] = 'N';
             });
         }
 
-        // Create tooth button
         function createToothButton(toothNumber) {
             const btn = document.createElement('button');
             btn.className = 'tooth-btn normal';
@@ -841,14 +906,10 @@
                 statusIndex = (statusIndex + 1) % statuses.length;
                 const newStatus = statuses[statusIndex];
                 
-                // Update button appearance
                 btn.className = `tooth-btn ${getStatusClass(newStatus)}`;
                 btn.innerHTML = `<span class="number">${toothNumber}</span><span class="status">${newStatus}</span>`;
                 
-                // Update tooth status
                 toothStatus[toothNumber] = newStatus;
-                
-                // Update category lists
                 updateToothCategories();
             });
             
@@ -875,14 +936,12 @@
                 if (status === 'F' || status === 'O') toothCategories.filling.push(tooth);
             });
             
-            // Update input fields
             document.getElementById('toothExtraction').value = toothCategories.extraction.join(', ');
             document.getElementById('toothFilling').value = toothCategories.filling.join(', ');
         }
 
-        // Populate teeth
         function populateTeeth() {
-            // Permanent teeth quadrants
+            // Permanent teeth
             document.getElementById('upperRightPerm').innerHTML = '';
             [18,17,16,15,14,13,12,11].forEach(tooth => {
                 document.getElementById('upperRightPerm').appendChild(createToothButton(tooth));
@@ -903,7 +962,7 @@
                 document.getElementById('lowerRightPerm').appendChild(createToothButton(tooth));
             });
             
-            // Baby teeth quadrants
+            // Baby teeth
             document.getElementById('upperRightBaby').innerHTML = '';
             [55,54,53,52,51].forEach(tooth => {
                 document.getElementById('upperRightBaby').appendChild(createToothButton(tooth));
@@ -925,9 +984,8 @@
             });
         }
 
-        // Tab switching
+        // ==================== UI FUNCTIONS ====================
         function switchTab(tabNumber) {
-            // Update tab buttons
             document.querySelectorAll('.tab').forEach((tab, index) => {
                 if (index === tabNumber - 1) {
                     tab.classList.add('active');
@@ -936,7 +994,6 @@
                 }
             });
             
-            // Show selected tab content
             document.querySelectorAll('.tab-content').forEach((content, index) => {
                 if (index === tabNumber - 1) {
                     content.classList.remove('hidden');
@@ -946,82 +1003,54 @@
             });
         }
 
-        // Search student
+        function showStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${type}`;
+            element.textContent = message;
+            element.classList.remove('hidden');
+            
+            setTimeout(() => {
+                element.classList.add('hidden');
+            }, 5000);
+        }
+
+        // ==================== SEARCH FUNCTION ====================
         async function searchStudent() {
-            const name = document.getElementById('searchName').value;
-            const dob = document.getElementById('searchDob').value;
+            const name = document.getElementById('searchName').value.trim();
+            const dob = document.getElementById('searchDob').value.trim();
             const school = document.getElementById('searchSchool').value;
             
             if (!name || !dob || !school) {
-                alert('Please fill in all search fields / Punan ang lahat ng field');
+                showStatus('searchStatus', 'Please fill in all search fields / Punan ang lahat ng field', 'error');
                 return;
             }
             
-            // Here you would call your Apps Script to search
-            // For now, show mock data
-            document.getElementById('studentInfo').classList.remove('hidden');
-            document.getElementById('displayName').textContent = name;
-            document.getElementById('displayDob').textContent = dob;
-            document.getElementById('displaySchool').textContent = school;
-            document.getElementById('displaySex').textContent = 'Male / Lalaki';
-            document.getElementById('displayParent').textContent = 'Juan Dela Cruz';
-            document.getElementById('displayContact').textContent = '09123456789';
-            document.getElementById('displaySystemic').textContent = 'None / Wala';
-            document.getElementById('displayFoodAllergy').textContent = 'None / Wala';
-            document.getElementById('displayMedAllergy').textContent = 'Penicillin';
-            
-            // Show previous records
-            document.getElementById('previousRecords').classList.remove('hidden');
-            const recordsList = document.getElementById('recordsList');
-            recordsList.innerHTML = `
-                <div class="record-item">
-                    <div class="record-date">2024-01-15</div>
-                    <div>Extraction: 18, 28 / Filling: 16, 26</div>
-                </div>
-                <div class="record-item">
-                    <div class="record-date">2023-11-20</div>
-                    <div>Cleaning / Fluoride treatment</div>
-                </div>
-            `;
-        }
-
-        function clearSearch() {
-            document.getElementById('searchName').value = '';
-            document.getElementById('searchDob').value = '';
-            document.getElementById('searchSchool').value = '';
+            // Show loading
+            document.getElementById('searchLoading').classList.remove('hidden');
             document.getElementById('studentInfo').classList.add('hidden');
             document.getElementById('previousRecords').classList.add('hidden');
             
-            // Reset teeth
-            initTeeth();
-            populateTeeth();
-        }
-
-        // Form submit
-        document.getElementById('dentalForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const record = {
-                studentName: document.getElementById('displayName').textContent,
-                school: document.getElementById('displaySchool').textContent,
-                toothExtraction: document.getElementById('toothExtraction').value,
-                toothFilling: document.getElementById('toothFilling').value,
-                fluoride: document.getElementById('fluoride').value,
-                dentalConsult: document.getElementById('dentalConsult').value,
-                oralNotes: document.getElementById('oralNotes').value,
-                remarks: document.getElementById('remarks').value,
-                toothData: toothStatus
-            };
-            
-            console.log('Saving record:', record);
-            alert('Record saved! / Na-save ang tala!');
-        });
-
-        // Initialize on load
-        window.addEventListener('load', () => {
-            initTeeth();
-            populateTeeth();
-        });
-    </script>
-</body>
-</html>
+            try {
+                // Create FormData for the request
+                const formData = new FormData();
+                formData.append('action', 'search');
+                formData.append('completeName', name);
+                formData.append('dob', dob);
+                formData.append('school', school);
+                
+                // Send request
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const text = await response.text();
+                console.log('Search response:', text);
+                
+                // Try to parse JSON
+                let result;
+                try {
+                    result = JSON.parse(text);
+                } catch (e) {
+                    console.log('Response is not JSON:', text);
+                    // If not JSON, show mock data for testing
