@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Multi-Section Site</title>
+    <style>
+        :root {
+            --caribbean-current: #16697aff;
+            --moonstone: #489fb5ff;
+            --sky-blue: #82c0ccff;
+            --isabelline: #ede7e3ff;
+            --orange-peel: #ffa62bff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--moonstone) 0%, var(--caribbean-current) 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            background: var(--isabelline);
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: var(--isabelline);
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--caribbean-current);
+            transition: all 0.3s ease;
+            text-align: center;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .nav-tab:hover {
+            background: var(--sky-blue);
+            color: white;
+        }
+        
+        .nav-tab.active {
+            background: white;
+            border-bottom: 3px solid var(--orange-peel);
+            color: var(--caribbean-current);
+        }
+        
+        /* Content Area */
+        .content-area {
+            background: white;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+            min-height: 600px;
+        }
+        
+        /* Iframe Styling */
+        .component-frame {
+            width: 100%;
+            height: 800px;
+            border: none;
+            display: block;
+            transition: opacity 0.3s ease;
+        }
+        
+        .frame-container {
+            position: relative;
+            width: 100%;
+            height: 800px;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+        
+        .spinner {
+            border: 4px solid var(--sky-blue);
+            border-top: 4px solid var(--caribbean-current);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .nav-tabs {
+                flex-direction: column;
+            }
+            
+            .component-frame {
+                height: 600px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: white; text-align: center; margin-bottom: 20px;">My Interactive Tools</h1>
+        
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchComponent(1)">🦷 Dental Records</button>
+            <button class="nav-tab" onclick="switchComponent(2)">📊 Tool 2</button>
+            <button class="nav-tab" onclick="switchComponent(3)">📈 Tool 3</button>
+            <button class="nav-tab" onclick="switchComponent(4)">🎯 Tool 4</button>
+        </div>
+        
+        <!-- Content Area with Iframe -->
+        <div class="content-area">
+            <div class="frame-container" id="frameContainer">
+                <div class="loading-overlay" id="loading">
+                    <div class="spinner"></div>
+                </div>
+                <iframe 
+                    id="componentFrame" 
+                    class="component-frame"
+                    src="dental/" 
+                    onload="hideLoading()"
+                    title="Component Display"
+                ></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const components = [
+            'dental/',           // Component 1 - Dental Records
+            'component2/',       // Component 2 - Your second tool
+            'component3/',       // Component 3 - Your third tool
+            'component4/'        // Component 4 - Your fourth tool
+        ];
+        
+        function switchComponent(index) {
+            // Update active tab styling
+            document.querySelectorAll('.nav-tab').forEach((tab, i) => {
+                if (i === index - 1) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+            
+            // Show loading
+            document.getElementById('loading').classList.remove('hidden');
+            
+            // Update iframe source
+            const iframe = document.getElementById('componentFrame');
+            iframe.src = components[index - 1];
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+        
+        // Auto-adjust iframe height (optional)
+        window.addEventListener('message', function(e) {
+            if (e.data.type === 'resize-iframe') {
+                document.getElementById('componentFrame').style.height = e.data.height + 'px';
+            }
+        });
+    </script>
+</body>
+</html>
