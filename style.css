@@ -1,0 +1,495 @@
+/* ==================== VARIABLES ==================== */
+:root {
+    --primary: #16697a;
+    --secondary: #489fb5;
+    --light: #82c0cc;
+    --background: #ede7e3;
+    --accent: #ffa62b;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --tooth-normal: #82c0cc;
+    --tooth-decayed: #dc3545;
+    --tooth-filled: #28a745;
+    --tooth-missing: #6c757d;
+    --tooth-extract: #ffa62b;
+}
+
+/* ==================== RESET & BASE ==================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+    min-height: 100vh;
+    padding: 15px;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    overflow: hidden;
+}
+
+/* ==================== HEADER ==================== */
+.header {
+    background: var(--primary);
+    color: white;
+    padding: 25px;
+    text-align: center;
+}
+
+.header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+.header h1 small {
+    font-size: 0.6em;
+    display: block;
+    opacity: 0.9;
+    margin-top: 5px;
+}
+
+/* ==================== CONNECTION STATUS ==================== */
+#connectionStatus {
+    padding: 15px;
+    margin: 0;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: bold;
+}
+
+#connectionStatus.online {
+    background: #d4edda;
+    color: #155724;
+    border-bottom: 2px solid #28a745;
+}
+
+#connectionStatus.offline {
+    background: #fff3cd;
+    color: #856404;
+    border-bottom: 2px solid #ffc107;
+}
+
+.pending-count {
+    background: var(--warning);
+    color: #000;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 14px;
+    margin-left: auto;
+}
+
+/* ==================== TABS ==================== */
+.tabs {
+    display: flex;
+    background: var(--background);
+    border-bottom: 2px solid var(--light);
+    flex-wrap: wrap;
+}
+
+.tab {
+    flex: 1;
+    min-width: 150px;
+    padding: 18px 15px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--primary);
+    transition: all 0.3s;
+    border-bottom: 3px solid transparent;
+}
+
+.tab:hover {
+    background: rgba(130, 192, 204, 0.2);
+}
+
+.tab.active {
+    border-bottom: 3px solid var(--accent);
+    background: white;
+}
+
+.tab span.en {
+    display: block;
+}
+
+.tab span.tl {
+    display: block;
+    font-size: 0.85em;
+    opacity: 0.8;
+}
+
+/* ==================== CONTENT AREA ==================== */
+.content {
+    padding: 25px;
+    min-height: 600px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* ==================== SEARCH SECTION ==================== */
+.search-section {
+    background: var(--background);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+}
+
+.search-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* ==================== FORM ELEMENTS ==================== */
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+label .en {
+    display: block;
+}
+
+label .tl {
+    display: block;
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid var(--light);
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--secondary);
+    box-shadow: 0 0 0 3px rgba(72, 159, 181, 0.1);
+}
+
+/* ==================== BUTTONS ==================== */
+.btn {
+    background: var(--primary);
+    color: white;
+    padding: 14px 25px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn:hover {
+    background: var(--secondary);
+    transform: translateY(-2px);
+}
+
+.btn-success {
+    background: var(--success);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: #000;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ==================== STATUS MESSAGES ==================== */
+.status {
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    text-align: center;
+    font-weight: bold;
+}
+
+.success { background: #d4edda; color: #155724; }
+.error { background: #f8d7da; color: #721c24; }
+.info { background: #d1ecf1; color: #0c5460; }
+.warning { background: #fff3cd; color: #856404; }
+
+/* ==================== STUDENT INFO CARD ==================== */
+.student-card {
+    background: white;
+    border: 2px solid var(--light);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--light);
+}
+
+.student-name {
+    font-size: 1.5em;
+    color: var(--primary);
+    font-weight: bold;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+
+.info-item {
+    background: var(--background);
+    padding: 12px;
+    border-radius: 8px;
+}
+
+.info-label {
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 5px;
+}
+
+.info-label .en, .info-label .tl {
+    display: inline;
+}
+
+.info-label .en::after {
+    content: " / ";
+}
+
+/* ==================== FDI CHART ==================== */
+.fdi-chart {
+    background: white;
+    border: 2px solid var(--light);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.chart-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+.quadrant-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.quadrant {
+    background: var(--background);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.quadrant-title {
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 10px;
+    color: var(--primary);
+}
+
+.tooth-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin: 8px 0;
+    flex-wrap: wrap;
+}
+
+.tooth-btn {
+    width: 50px;
+    height: 50px;
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.tooth-btn .number {
+    font-size: 14px;
+}
+
+.tooth-btn .status {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.tooth-btn.normal { background: var(--tooth-normal); color: white; }
+.tooth-btn.decayed { background: var(--tooth-decayed); color: white; }
+.tooth-btn.filled { background: var(--tooth-filled); color: white; }
+.tooth-btn.missing { background: var(--tooth-missing); color: white; }
+.tooth-btn.extract { background: var(--tooth-extract); color: white; }
+
+/* ==================== LEGEND ==================== */
+.legend {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: var(--background);
+    border-radius: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.legend-color {
+    width: 25px;
+    height: 25px;
+    border-radius: 5px;
+}
+
+/* ==================== PREVIOUS RECORDS ==================== */
+.records-list {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 2px solid var(--light);
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.record-item {
+    background: var(--background);
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.record-item:hover {
+    background: var(--light);
+}
+
+.record-date {
+    font-weight: bold;
+    color: var(--primary);
+}
+
+/* ==================== LOADING ==================== */
+.loading {
+    text-align: center;
+    padding: 40px;
+}
+
+.spinner {
+    border: 4px solid var(--light);
+    border-top: 4px solid var(--primary);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ==================== TOAST NOTIFICATION ==================== */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    right: 20px;
+    background: #333;
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    animation: slideUp 0.3s;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* ==================== MEDIA QUERIES ==================== */
+@media (max-width: 768px) {
+    .quadrant-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tooth-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .tabs {
+        flex-direction: column;
+    }
+    
+    .tab {
+        width: 100%;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+}
