@@ -350,11 +350,12 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ==================== FDI CHART ==================== */
+/* ==================== FDI CHART - COMPACT FOR MOBILE ==================== */
 .fdi-chart {
     background: white;
     border: 2px solid var(--light);
     border-radius: 10px;
-    padding: 15px;
+    padding: 12px;
     margin: 15px 0;
 }
 
@@ -362,44 +363,84 @@ input:focus, select:focus, textarea:focus {
     font-size: 1.1em;
     font-weight: bold;
     color: var(--primary);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     text-align: center;
 }
 
+/* Compact Legend */
+.legend {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 10px 0;
+    padding: 8px 5px;
+    background: var(--background);
+    border-radius: 8px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 10px;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    border: 1px solid var(--light);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.legend-item span:not(.legend-color) {
+    white-space: nowrap;
+}
+
+/* Quadrant Grid - 2 columns on all screens */
 .quadrant-grid {
     display: grid;
-    grid-template-columns: 1fr; /* Single column on mobile */
-    gap: 12px;
-    margin: 15px 0;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin: 10px 0;
 }
 
 .quadrant {
     background: var(--background);
-    padding: 12px;
+    padding: 8px 5px;
     border-radius: 8px;
 }
 
 .quadrant-title {
     font-weight: bold;
     text-align: center;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     color: var(--primary);
-    font-size: 14px;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
+/* Tooth rows - flex with wrapping */
 .tooth-row {
     display: flex;
     justify-content: center;
-    gap: 5px;
-    margin: 5px 0;
+    gap: 3px;
+    margin: 3px 0;
     flex-wrap: wrap;
 }
 
+/* Compact tooth buttons */
 .tooth-btn {
-    width: 44px; /* Slightly smaller for mobile */
-    height: 44px;
-    border: 2px solid var(--primary);
-    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid var(--primary);
+    border-radius: 6px;
     background: white;
     cursor: pointer;
     font-weight: bold;
@@ -409,23 +450,115 @@ input:focus, select:focus, textarea:focus {
     align-items: center;
     justify-content: center;
     -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation; /* Optimize for touch */
+    touch-action: manipulation;
+    padding: 0;
+    margin: 0;
 }
 
 .tooth-btn .number {
-    font-size: 12px;
+    font-size: 9px;
+    line-height: 1;
+    margin-bottom: 1px;
 }
 
 .tooth-btn .status {
-    font-size: 16px;
+    font-size: 12px;
     line-height: 1;
+    font-weight: bold;
 }
 
-.tooth-btn.normal { background: var(--tooth-normal); color: white; }
-.tooth-btn.decayed { background: var(--tooth-decayed); color: white; }
-.tooth-btn.filled { background: var(--tooth-filled); color: white; }
-.tooth-btn.missing { background: var(--tooth-missing); color: white; }
-.tooth-btn.extract { background: var(--tooth-extract); color: white; }
+/* Tooth status colors */
+.tooth-btn.normal { 
+    background: var(--tooth-normal); 
+    color: white; 
+    border-color: #5a9aa8;
+}
+.tooth-btn.decayed { 
+    background: var(--tooth-decayed); 
+    color: white; 
+    border-color: #b02a37;
+}
+.tooth-btn.filled { 
+    background: var(--tooth-filled); 
+    color: white; 
+    border-color: #1e7e34;
+}
+.tooth-btn.missing { 
+    background: var(--tooth-missing); 
+    color: white; 
+    border-color: #5a6268;
+}
+.tooth-btn.extract { 
+    background: var(--tooth-extract); 
+    color: white; 
+    border-color: #cc7b00;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 380px) {
+    .tooth-btn {
+        width: 28px;
+        height: 28px;
+    }
+    
+    .tooth-btn .number {
+        font-size: 8px;
+    }
+    
+    .tooth-btn .status {
+        font-size: 10px;
+    }
+    
+    .quadrant-title {
+        font-size: 10px;
+    }
+    
+    .legend-item {
+        font-size: 9px;
+        padding: 2px 4px;
+    }
+}
+
+/* Larger screens - slightly bigger teeth */
+@media (min-width: 768px) {
+    .tooth-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .tooth-btn .number {
+        font-size: 11px;
+    }
+    
+    .tooth-btn .status {
+        font-size: 14px;
+    }
+    
+    .quadrant-title {
+        font-size: 12px;
+    }
+}
+
+@supports (-webkit-touch-callout: none) {
+    @media (max-width: 375px) {
+        .quadrant-grid {
+            gap: 5px;
+        }
+        
+        .tooth-btn {
+            width: 26px;
+            height: 26px;
+        }
+        
+        .tooth-btn .number {
+            font-size: 7px;
+        }
+        
+        .tooth-btn .status {
+            font-size: 9px;
+        }
+    }
+}
 
 /* ==================== LEGEND ==================== */
 .legend {
