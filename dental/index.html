@@ -28,41 +28,27 @@
             padding: 20px;
             border-radius: 10px 10px 0 0;
             text-align: center;
+            margin-bottom: 20px;
         }
         
-        .status-bar {
-            background: white;
+        .status {
             padding: 15px;
+            margin: 10px 0 20px 0;
             border-radius: 5px;
-            margin: 20px 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-left: 5px solid;
-        }
-        
-        .status-online {
-            border-color: #28a745;
-            background: #f0fff4;
-        }
-        
-        .status-offline {
-            border-color: #ffc107;
-            background: #fff9e6;
-        }
-        
-        .status-syncing {
-            border-color: #17a2b8;
-            background: #e3f2fd;
-        }
-        
-        .pending-badge {
-            background: #ffc107;
-            color: #000;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 14px;
             font-weight: bold;
+            text-align: center;
+        }
+        
+        .online { 
+            background: #d4edda; 
+            color: #155724; 
+            border-left: 5px solid #28a745;
+        }
+        
+        .offline { 
+            background: #fff3cd; 
+            color: #856404; 
+            border-left: 5px solid #ffc107;
         }
         
         .form-card {
@@ -79,7 +65,7 @@
         label {
             display: block;
             margin-bottom: 5px;
-            font-weight: 600;
+            font-weight: bold;
             color: #16697a;
         }
         
@@ -118,16 +104,7 @@
             cursor: not-allowed;
         }
         
-        .sync-btn {
-            background: #28a745;
-            margin-top: 10px;
-        }
-        
-        .sync-btn:hover {
-            background: #218838;
-        }
-        
-        .pending-list {
+        .pending-section {
             background: white;
             padding: 20px;
             border-radius: 10px;
@@ -154,6 +131,7 @@
             text-align: center;
             animation: slideUp 0.3s;
             z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         
         @keyframes slideUp {
@@ -163,6 +141,26 @@
         
         .hidden {
             display: none;
+        }
+        
+        .sync-btn {
+            background: #28a745;
+            margin-top: 10px;
+        }
+        
+        .sync-btn:hover {
+            background: #218838;
+        }
+        
+        .pending-count {
+            background: #ffc107;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -174,10 +172,10 @@
         </div>
         
         <!-- Status Bar -->
-        <div id="statusBar" class="status-bar status-online">
+        <div id="onlineStatus" class="status online">
             <span id="statusIcon">✅</span>
-            <span id="statusText">You are online - connected to Google Sheets</span>
-            <span id="pendingCount" class="pending-badge hidden">0 pending</span>
+            <span id="statusText">You are online - saving to Google Sheets</span>
+            <span id="pendingCount" class="pending-count hidden">0</span>
         </div>
         
         <!-- Main Form -->
@@ -186,8 +184,8 @@
             
             <form id="dentalForm">
                 <div class="form-group">
-                    <label>Complete Name of Pupil</label>
-                    <input type="text" id="completeName" placeholder="Enter full name" required>
+                    <label>Student Name</label>
+                    <input type="text" id="studentName" placeholder="Enter full name" required>
                 </div>
                 
                 <div class="form-group">
@@ -197,7 +195,8 @@
                 
                 <div class="form-group">
                     <label>School</label>
-                    <select id="school">
+                    <select id="school" required>
+                        <option value="">Select School</option>
                         <option value="JCES">JCES</option>
                         <option value="Boctol">Boctol</option>
                     </select>
@@ -205,7 +204,7 @@
                 
                 <div class="form-group">
                     <label>Dental Procedures</label>
-                    <textarea id="dentalProcedures" rows="3" placeholder="Enter procedures performed..."></textarea>
+                    <textarea id="procedures" rows="3" placeholder="Enter procedures performed..."></textarea>
                 </div>
                 
                 <div class="form-group">
@@ -213,19 +212,14 @@
                     <textarea id="remarks" rows="3" placeholder="Enter any remarks..."></textarea>
                 </div>
                 
-                <button type="submit" id="saveBtn">
-                    <span id="saveIcon">💾</span>
-                    <span id="saveText">Save Record</span>
-                </button>
+                <button type="submit" id="saveBtn">💾 Save Record</button>
             </form>
             
-            <button id="syncBtn" class="sync-btn hidden">
-                🔄 Sync Pending Records
-            </button>
+            <button id="syncBtn" class="sync-btn hidden">🔄 Sync Pending Records</button>
         </div>
         
-        <!-- Pending Records List -->
-        <div id="pendingSection" class="pending-list hidden">
+        <!-- Pending Records Section -->
+        <div id="pendingSection" class="pending-section hidden">
             <h3>📋 Pending Offline Records</h3>
             <div id="pendingList"></div>
         </div>
@@ -236,11 +230,8 @@
 
     <script>
         // ==================== CONFIGURATION ====================
-        // REPLACE THIS WITH YOUR ACTUAL WEB APP URL FROM APPS SCRIPT
-        const APPS_SCRIPT_URL = 'YOUR_WEB_APP_URL_HERE';
-        
-        // Database configuration
-        const DB_NAME = 'DentalRecordsDB';
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
+        const DB_NAME = 'DentalOfflineDB';
         const DB_VERSION = 1;
         
         // ==================== INDEXEDDB SETUP ====================
@@ -264,7 +255,6 @@
                 request.onupgradeneeded = (event) => {
                     const db = event.target.result;
                     
-                    // Create object store for pending records
                     if (!db.objectStoreNames.contains('pending')) {
                         const store = db.createObjectStore('pending', { 
                             keyPath: 'id', 
@@ -364,17 +354,41 @@
             
             for (const record of pendingRecords) {
                 try {
-                    // Send to Apps Script
-                    const response = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors', // This is important for Apps Script
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(record)
+                    // Create a form to submit (works better with Apps Script)
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = APPS_SCRIPT_URL;
+                    form.target = 'hiddenIframe';
+                    form.style.display = 'none';
+                    
+                    // Add data as hidden field
+                    const dataField = document.createElement('input');
+                    dataField.type = 'hidden';
+                    dataField.name = 'data';
+                    dataField.value = JSON.stringify(record);
+                    form.appendChild(dataField);
+                    
+                    // Create hidden iframe for response
+                    const iframe = document.createElement('iframe');
+                    iframe.name = 'hiddenIframe';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    
+                    // Wait for submission
+                    await new Promise((resolve) => {
+                        iframe.onload = resolve;
+                        document.body.appendChild(form);
+                        form.submit();
+                        
+                        // Timeout after 5 seconds
+                        setTimeout(resolve, 5000);
                     });
                     
-                    // With no-cors, we can't read response, so assume success
+                    // Clean up
+                    document.body.removeChild(form);
+                    document.body.removeChild(iframe);
+                    
+                    // Delete from pending
                     await deletePendingRecord(record.id);
                     successCount++;
                     
@@ -397,31 +411,45 @@
         // ==================== SAVE RECORD (ONLINE/OFFLINE) ====================
         async function saveRecord(record) {
             if (navigator.onLine) {
-                // Try to save online first
                 try {
-                    showToast('📤 Saving to Google Sheets...', 'syncing');
+                    // Try to save online first
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = APPS_SCRIPT_URL;
+                    form.target = 'hiddenIframe';
+                    form.style.display = 'none';
                     
-                    const response = await fetch(APPS_SCRIPT_URL, {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify(record)
+                    const dataField = document.createElement('input');
+                    dataField.type = 'hidden';
+                    dataField.name = 'data';
+                    dataField.value = JSON.stringify(record);
+                    form.appendChild(dataField);
+                    
+                    const iframe = document.createElement('iframe');
+                    iframe.name = 'hiddenIframe';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                    
+                    await new Promise((resolve) => {
+                        iframe.onload = resolve;
+                        document.body.appendChild(form);
+                        form.submit();
+                        setTimeout(resolve, 3000);
                     });
+                    
+                    document.body.removeChild(form);
+                    document.body.removeChild(iframe);
                     
                     showToast('✅ Record saved to Google Sheets!', 'success');
                     return { success: true, online: true };
                     
                 } catch (error) {
                     console.log('Online save failed, saving offline:', error);
-                    // If online fails, save offline
                     await saveRecordOffline(record);
                     showToast('📱 Saved offline (will sync later)', 'offline');
                     return { success: true, online: false };
                 }
             } else {
-                // Offline - save locally
                 await saveRecordOffline(record);
                 showToast('📱 Saved offline (will sync later)', 'offline');
                 return { success: true, online: false };
@@ -440,13 +468,13 @@
                 pendingSection.classList.remove('hidden');
                 syncBtn.classList.remove('hidden');
                 pendingCount.classList.remove('hidden');
-                pendingCount.textContent = `${pendingRecords.length} pending`;
+                pendingCount.textContent = pendingRecords.length;
                 
                 let html = '';
                 pendingRecords.slice(-5).reverse().forEach(record => {
                     html += `
                         <div class="pending-item">
-                            <strong>${record.completeName || 'Unknown'}</strong><br>
+                            <strong>${record.studentName || 'Unknown'}</strong><br>
                             <small>${new Date(record.timestamp).toLocaleString()}</small>
                         </div>
                     `;
@@ -465,24 +493,21 @@
         }
         
         function updateOnlineStatus() {
-            const statusBar = document.getElementById('statusBar');
+            const statusDiv = document.getElementById('onlineStatus');
             const statusIcon = document.getElementById('statusIcon');
             const statusText = document.getElementById('statusText');
-            const saveBtn = document.getElementById('saveBtn');
             
             if (navigator.onLine) {
-                statusBar.className = 'status-bar status-online';
+                statusDiv.className = 'status online';
                 statusIcon.textContent = '✅';
-                statusText.textContent = 'You are online - connected to Google Sheets';
-                saveBtn.disabled = false;
+                statusText.textContent = 'You are online - saving to Google Sheets';
                 
                 // Try to sync when coming online
-                syncWithGoogleSheets();
+                setTimeout(syncWithGoogleSheets, 2000);
             } else {
-                statusBar.className = 'status-bar status-offline';
+                statusDiv.className = 'status offline';
                 statusIcon.textContent = '📴';
                 statusText.textContent = 'You are offline - saving locally';
-                saveBtn.disabled = false;
             }
             
             updatePendingUI();
@@ -509,36 +534,37 @@
         document.getElementById('dentalForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
-            // Disable save button temporarily
             const saveBtn = document.getElementById('saveBtn');
             saveBtn.disabled = true;
+            saveBtn.textContent = '💾 Saving...';
             
-            // Collect form data
             const record = {
-                completeName: document.getElementById('completeName').value,
+                studentName: document.getElementById('studentName').value,
                 dob: document.getElementById('dob').value,
                 school: document.getElementById('school').value,
-                dentalProcedures: document.getElementById('dentalProcedures').value,
-                remarks: document.getElementById('remarks').value,
-                // Add more fields as needed
+                procedures: document.getElementById('procedures').value,
+                remarks: document.getElementById('remarks').value
             };
             
-            // Save record
             await saveRecord(record);
             
-            // Reset form
             e.target.reset();
-            
-            // Re-enable save button
             saveBtn.disabled = false;
+            saveBtn.textContent = '💾 Save Record';
             
-            // Update pending UI
             await updatePendingUI();
         });
         
         // Sync button click handler
         document.getElementById('syncBtn').addEventListener('click', async () => {
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.disabled = true;
+            syncBtn.textContent = '🔄 Syncing...';
+            
             await syncWithGoogleSheets();
+            
+            syncBtn.disabled = false;
+            syncBtn.textContent = '🔄 Sync Pending Records';
         });
         
         // ==================== INITIALIZATION ====================
@@ -551,9 +577,8 @@
             if (navigator.onLine) {
                 const pending = await getPendingRecords();
                 if (pending.length > 0) {
-                    if (confirm(`You have ${pending.length} pending records. Sync now?`)) {
-                        await syncWithGoogleSheets();
-                    }
+                    showToast(`📤 Found ${pending.length} pending records to sync`, 'syncing');
+                    setTimeout(syncWithGoogleSheets, 3000);
                 }
             }
         });
