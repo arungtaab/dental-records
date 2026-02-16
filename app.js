@@ -1,5 +1,5 @@
 // ==================== CONFIGURATION ====================
-const APPS_SCRIPT_URL = 'YOUR_WEB_APP_URL_HERE'; // Replace with your Apps Script URL
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec'; // Replace with your Apps Script URL
 const DB_NAME = 'DentalOfflineDB';
 const DB_VERSION = 1;
 
