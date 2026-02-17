@@ -418,7 +418,7 @@ function displayConsolidatedInfo(record) {
     setValue('toothExtraction', record.toothExtraction);
     setValue('toothFilling', record.toothFilling);
     setValue('toothDecayed', record.toothDecayed);
-    setValue('toothMissing', record.toothMissing); 
+    setValue('toothMissing', record.toothMissing);
     setValue('fluoride', record.fluoride);
     setValue('dentalConsult', record.dentalConsultations);
     setValue('severeCavities', record.severeCavities);
@@ -491,7 +491,7 @@ window.loadExam = function (examData) {
             });
             updateToothFields();
         }
-        
+
         showToast('Loaded previous exam', 'success');
     }
 };
@@ -573,25 +573,32 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
         const tx = db.transaction('exams', 'readwrite');
         const store = tx.objectStore('exams');
+        // After adding the exam locally
         const examId = await store.add(exam);
         console.log('Exam saved locally with ID', examId);
 
         if (navigator.onLine) {
-            const formData = new FormData();
-            formData.append('action', 'save');
-            formData.append('record', JSON.stringify(fullRecord));
+            try {
+                const formData = new FormData();
+                formData.append('action', 'save');
+                formData.append('record', JSON.stringify(fullRecord));
 
-            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-            if (response.ok) {
-                exam.synced = true;
-                exam.id = examId;
-                await store.put(exam);
-                showToast('✅ Saved to Google Sheet and synced!', 'success');
-                e.target.reset();
-                resetTeeth();
-                clearSearch();
-            } else {
-                showToast('📱 Saved locally (will sync later)', 'offline');
+                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+                if (response.ok) {
+                    // Start a NEW transaction to update the synced flag
+                    const updateTx = db.transaction('exams', 'readwrite');
+                    const updateStore = updateTx.objectStore('exams');
+                    exam.synced = true;
+                    exam.id = examId;
+                    await updateStore.put(exam);
+                    showToast('✅ Saved to Google Sheet and synced!', 'success');
+                } else {
+                    // Online save failed – exam remains unsynced (already saved locally)
+                    showToast('📱 Saved locally (will sync later)', 'offline');
+                }
+            } catch (error) {
+                console.error('Online sync error:', error);
+                showToast('📱 Saved locally (sync will retry later)', 'offline');
             }
         } else {
             showToast('📱 Saved offline (will sync when online)', 'offline');
@@ -649,7 +656,7 @@ window.saveStudentInfo = async function () {
     await openDB();
     const tx = db.transaction('students', 'readwrite');
     const store = tx.objectStore('students');
-    
+
     const wasNew = !currentStudentId; // true if this is a new student
 
     if (currentStudentId) {
