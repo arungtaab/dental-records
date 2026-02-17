@@ -1,275 +1,155 @@
 // ==================== CONFIGURATION ====================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec'; // Replace with your Apps Script URL
-const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 4; // Increment to force upgrade
+// ==================== CONFIGURATION ====================
+const DB_NAME = 'DentalRecordsDB';
+const DB_VERSION = 1;
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
 let currentStudent = null;
-let dbInitPromise = null;
+let allStudents = [];
 const toothStatus = {};
-const toothCategories = {
-    extraction: [],
-    filling: []
-};
 
 // ==================== INDEXEDDB SETUP ====================
 async function openDB() {
-    if (dbInitPromise) {
-        return dbInitPromise;
-    }
-    
-    dbInitPromise = new Promise((resolve, reject) => {
-        console.log('Opening database...');
+    return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         
-        request.onerror = () => {
-            console.error('Database error:', request.error);
-            dbInitPromise = null;
-            reject(request.error);
-        };
+        request.onerror = () => reject(request.error);
         
         request.onsuccess = () => {
             db = request.result;
-            console.log('Database opened successfully');
-            
-            db.onclose = () => {
-                console.log('Database closed, resetting connection');
-                db = null;
-                dbInitPromise = null;
-            };
-            
             resolve(db);
         };
         
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
-            console.log('Upgrading database from version', event.oldVersion, 'to', event.newVersion);
             
-            // Delete existing stores
-            const storeNames = Array.from(db.objectStoreNames);
-            storeNames.forEach(storeName => {
-                db.deleteObjectStore(storeName);
-                console.log('Deleted store:', storeName);
-            });
+            // Students store
+            if (!db.objectStoreNames.contains('students')) {
+                const studentStore = db.createObjectStore('students', { 
+                    keyPath: 'id', 
+                    autoIncrement: true 
+                });
+                studentStore.createIndex('name', 'name', { unique: false });
+                studentStore.createIndex('school', 'school', { unique: false });
+                studentStore.createIndex('dob', 'dob', { unique: false });
+            }
             
-            // Create pending store WITHOUT any indexes first
-            const pendingStore = db.createObjectStore('pending', { 
-                keyPath: 'id', 
-                autoIncrement: true 
-            });
-            console.log('Created pending store');
-            
-            // Create students store with needed indexes
-            const studentStore = db.createObjectStore('students', { 
-                keyPath: 'id', 
-                autoIncrement: true 
-            });
-            studentStore.createIndex('name', 'name', { unique: false });
-            studentStore.createIndex('school', 'school', { unique: false });
-            studentStore.createIndex('dob', 'dob', { unique: false });
-            console.log('Created students store with indexes');
+            // Dental records store
+            if (!db.objectStoreNames.contains('dentalRecords')) {
+                const recordsStore = db.createObjectStore('dentalRecords', { 
+                    keyPath: 'id', 
+                    autoIncrement: true 
+                });
+                recordsStore.createIndex('studentId', 'studentId', { unique: false });
+                recordsStore.createIndex('date', 'date', { unique: false });
+            }
         };
     });
+}
+
+// ==================== STUDENT FUNCTIONS ====================
+async function saveStudent(student) {
+    await openDB();
     
-    return dbInitPromise;
-}
-
-// ==================== OFFLINE STORAGE ====================
-async function saveRecordOffline(record) {
-    try {
-        await openDB();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction('students', 'readwrite');
+        const store = transaction.objectStore('students');
         
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction('pending', 'readwrite');
-            const store = transaction.objectStore('pending');
-            
-            const recordToSave = {
-                ...record,
-                timestamp: new Date().toISOString(),
-                synced: false
-            };
-            
-            const request = store.add(recordToSave);
-            
-            request.onsuccess = () => {
-                console.log('Record saved offline with ID:', request.result);
-                updatePendingCount().catch(console.error);
-                resolve({ success: true, id: request.result });
-            };
-            
-            request.onerror = () => {
-                console.error('Error saving offline:', request.error);
-                reject(request.error);
-            };
-        });
-    } catch (error) {
-        console.error('Failed to save offline:', error);
-        throw error;
-    }
-}
-
-// FIXED: Get pending records WITHOUT using non-existent index
-async function getPendingRecords() {
-    try {
-        await openDB();
-        
-        return new Promise((resolve, reject) => {
-            if (!db) {
-                reject(new Error('Database not initialized'));
-                return;
-            }
-            
-            const transaction = db.transaction('pending', 'readonly');
-            const store = transaction.objectStore('pending');
-            
-            // FIXED: Use getAll() instead of index
-            const request = store.getAll();
-            
-            request.onsuccess = () => {
-                const allRecords = request.result || [];
-                // Filter in JavaScript instead of using index
-                const unsynced = allRecords.filter(record => !record.synced);
-                console.log(`Found ${unsynced.length} unsynced records out of ${allRecords.length}`);
-                resolve(unsynced);
-            };
-            
-            request.onerror = () => {
-                console.error('Error getting pending records:', request.error);
-                reject(request.error);
-            };
-        });
-    } catch (error) {
-        console.error('Failed to get pending records:', error);
-        return [];
-    }
-}
-
-// FIXED: Get all records (for debugging)
-async function getAllRecords() {
-    try {
-        await openDB();
-        
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction('pending', 'readonly');
-            const store = transaction.objectStore('pending');
-            const request = store.getAll();
-            
-            request.onsuccess = () => {
-                resolve(request.result || []);
-            };
-            
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    } catch (error) {
-        console.error('Failed to get all records:', error);
-        return [];
-    }
-}
-
-async function deletePendingRecord(id) {
-    try {
-        await openDB();
-        
-        return new Promise((resolve, reject) => {
-            const transaction = db.transaction('pending', 'readwrite');
-            const store = transaction.objectStore('pending');
-            const request = store.delete(id);
-            
-            request.onsuccess = () => {
-                console.log('Deleted pending record:', id);
-                resolve(true);
-            };
-            
-            request.onerror = () => {
-                console.error('Error deleting record:', request.error);
-                reject(request.error);
-            };
-        });
-    } catch (error) {
-        console.error('Failed to delete record:', error);
-        throw error;
-    }
-}
-
-async function updatePendingCount() {
-    try {
-        const pending = await getPendingRecords();
-        const pendingCount = document.getElementById('pendingCount');
-        const syncBtn = document.getElementById('syncBtn');
-        
-        if (pendingCount && syncBtn) {
-            if (pending.length > 0) {
-                pendingCount.textContent = pending.length;
-                pendingCount.classList.remove('hidden');
-                syncBtn.classList.remove('hidden');
-                console.log(`Pending count updated: ${pending.length}`);
-            } else {
-                pendingCount.classList.add('hidden');
-                syncBtn.classList.add('hidden');
-            }
-        }
-    } catch (error) {
-        console.error('Error updating pending count:', error);
-    }
-}
-
-// ==================== SYNC WITH GOOGLE SHEETS ====================
-async function syncWithGoogleSheets() {
-    if (!navigator.onLine) {
-        showToast('📴 You are offline. Cannot sync. / Offline ka. Hindi maka-sync.', 'offline');
-        return;
-    }
-    
-    try {
-        const pendingRecords = await getPendingRecords();
-        
-        if (pendingRecords.length === 0) {
-            showToast('✅ No pending records to sync / Walang pending na tala', 'success');
-            return;
-        }
-        
-        showToast(`🔄 Syncing ${pendingRecords.length} records...`, 'syncing');
-        
-        let successCount = 0;
-        let failCount = 0;
-        
-        for (const record of pendingRecords) {
-            try {
-                const formData = new FormData();
-                formData.append('action', 'save');
-                formData.append('record', JSON.stringify(record));
-                
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    await deletePendingRecord(record.id);
-                    successCount++;
-                } else {
-                    failCount++;
-                }
-            } catch (error) {
-                console.error('Sync failed for record', record.id, error);
-                failCount++;
-            }
-        }
-        
-        await updatePendingCount();
-        
-        if (failCount === 0) {
-            showToast(`✅ Successfully synced ${successCount} records!`, 'success');
+        if (!student.id) {
+            // New student
+            const request = store.add(student);
+            request.onsuccess = () => resolve({ ...student, id: request.result });
+            request.onerror = () => reject(request.error);
         } else {
-            showToast(`⚠️ Synced ${successCount}, failed ${failCount}`, 'warning');
+            // Update existing
+            const request = store.put(student);
+            request.onsuccess = () => resolve(student);
+            request.onerror = () => reject(request.error);
         }
-    } catch (error) {
-        console.error('Sync error:', error);
-        showToast('❌ Sync failed: ' + error.message, 'error');
-    }
+    });
+}
+
+async function searchStudents(name, dob, school) {
+    await openDB();
+    
+    return new Promise((resolve) => {
+        const transaction = db.transaction('students', 'readonly');
+        const store = transaction.objectStore('students');
+        const request = store.getAll();
+        
+        request.onsuccess = () => {
+            const students = request.result.filter(s => {
+                const nameMatch = !name || (s.name && s.name.toLowerCase().includes(name.toLowerCase()));
+                const dobMatch = !dob || s.dob === dob;
+                const schoolMatch = !school || s.school === school;
+                return nameMatch && dobMatch && schoolMatch;
+            });
+            resolve(students);
+        };
+        
+        request.onerror = () => resolve([]);
+    });
+}
+
+async function getAllStudents() {
+    await openDB();
+    
+    return new Promise((resolve) => {
+        const transaction = db.transaction('students', 'readonly');
+        const store = transaction.objectStore('students');
+        const request = store.getAll();
+        
+        request.onsuccess = () => {
+            allStudents = request.result;
+            resolve(allStudents);
+        };
+        
+        request.onerror = () => resolve([]);
+    });
+}
+
+// ==================== DENTAL RECORDS FUNCTIONS ====================
+async function saveDentalRecord(record) {
+    await openDB();
+    
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction('dentalRecords', 'readwrite');
+        const store = transaction.objectStore('dentalRecords');
+        
+        const recordToSave = {
+            ...record,
+            date: new Date().toISOString(),
+            studentId: currentStudent.id
+        };
+        
+        const request = store.add(recordToSave);
+        
+        request.onsuccess = () => {
+            showToast('✅ Dental record saved!', 'success');
+            resolve({ success: true });
+        };
+        
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function getStudentRecords(studentId) {
+    await openDB();
+    
+    return new Promise((resolve) => {
+        const transaction = db.transaction('dentalRecords', 'readonly');
+        const store = transaction.objectStore('dentalRecords');
+        const index = store.index('studentId');
+        const request = index.getAll(studentId);
+        
+        request.onsuccess = () => {
+            resolve(request.result.sort((a, b) => new Date(b.date) - new Date(a.date)));
+        };
+        
+        request.onerror = () => resolve([]);
+    });
 }
 
 // ==================== TEETH FUNCTIONS ====================
@@ -294,10 +174,8 @@ function createToothButton(toothNumber) {
     const statuses = ['N', 'X', 'O', 'M', 'F'];
     let statusIndex = 0;
     
-    const handleToothClick = (e) => {
+    btn.addEventListener('click', (e) => {
         e.preventDefault();
-        e.stopPropagation();
-        
         statusIndex = (statusIndex + 1) % statuses.length;
         const newStatus = statuses[statusIndex];
         
@@ -305,42 +183,31 @@ function createToothButton(toothNumber) {
         btn.innerHTML = `<span class="number">${toothNumber}</span><span class="status">${newStatus}</span>`;
         
         toothStatus[toothNumber] = newStatus;
-        updateToothCategories();
-    };
-    
-    btn.addEventListener('click', handleToothClick);
-    btn.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-    }, { passive: false });
+        updateToothFields();
+    });
     
     return btn;
 }
 
 function getStatusClass(status) {
     const classes = {
-        'N': 'normal',
-        'X': 'extract',
-        'O': 'decayed',
-        'M': 'missing',
-        'F': 'filled'
+        'N': 'normal', 'X': 'extract', 'O': 'decayed',
+        'M': 'missing', 'F': 'filled'
     };
     return classes[status] || 'normal';
 }
 
-function updateToothCategories() {
-    toothCategories.extraction = [];
-    toothCategories.filling = [];
+function updateToothFields() {
+    const extraction = [];
+    const filling = [];
     
     Object.entries(toothStatus).forEach(([tooth, status]) => {
-        if (status === 'X') toothCategories.extraction.push(tooth);
-        if (status === 'F' || status === 'O') toothCategories.filling.push(tooth);
+        if (status === 'X') extraction.push(tooth);
+        if (status === 'F' || status === 'O') filling.push(tooth);
     });
     
-    const extractionField = document.getElementById('toothExtraction');
-    const fillingField = document.getElementById('toothFilling');
-    
-    if (extractionField) extractionField.value = toothCategories.extraction.join(', ');
-    if (fillingField) fillingField.value = toothCategories.filling.join(', ');
+    document.getElementById('toothExtraction').value = extraction.join(', ');
+    document.getElementById('toothFilling').value = filling.join(', ');
 }
 
 function populateTeeth() {
@@ -373,68 +240,43 @@ function populateTeeth() {
 
 function resetTeeth() {
     initTeeth();
-    
     document.querySelectorAll('.tooth-btn').forEach(btn => {
         btn.className = 'tooth-btn normal';
         btn.querySelector('.status').textContent = 'N';
     });
-    
-    updateToothCategories();
+    updateToothFields();
 }
 
 // ==================== UI FUNCTIONS ====================
 function switchTab(tabNumber) {
-    document.querySelectorAll('.tab').forEach((tab, index) => {
-        if (index === tabNumber - 1) {
-            tab.classList.add('active');
-        } else {
-            tab.classList.remove('active');
-        }
+    document.querySelectorAll('.tab').forEach((tab, i) => {
+        tab.classList.toggle('active', i === tabNumber - 1);
+    });
+    document.querySelectorAll('.tab-content').forEach((content, i) => {
+        content.classList.toggle('hidden', i !== tabNumber - 1);
     });
     
-    document.querySelectorAll('.tab-content').forEach((content, index) => {
-        if (index === tabNumber - 1) {
-            content.classList.remove('hidden');
-        } else {
-            content.classList.add('hidden');
-        }
-    });
-}
-
-function showStatus(elementId, message, type) {
-    const element = document.getElementById(elementId);
-    if (element) {
-        element.className = `status ${type}`;
-        element.textContent = message;
-        element.classList.remove('hidden');
-        
-        setTimeout(() => {
-            element.classList.add('hidden');
-        }, 5000);
-    }
+    if (tabNumber === 3) loadStudentsList();
 }
 
 function showToast(message, type = 'info') {
     const toast = document.getElementById('toast');
-    if (!toast) return;
-    
     toast.textContent = message;
     toast.className = 'toast';
-    
-    const colors = {
-        'success': '#28a745',
-        'offline': '#ffc107',
-        'syncing': '#17a2b8',
-        'error': '#dc3545',
-        'info': '#333'
-    };
-    
-    toast.style.background = colors[type] || colors.info;
+    toast.style.background = type === 'success' ? '#28a745' : 
+                            type === 'error' ? '#dc3545' : '#333';
     toast.classList.remove('hidden');
-    
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
+    setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+function showStatus(elementId, message, type) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.className = `status ${type}`;
+        el.textContent = message;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
+    }
 }
 
 function updateOnlineStatus() {
@@ -442,184 +284,189 @@ function updateOnlineStatus() {
     const statusIcon = document.getElementById('statusIcon');
     const statusText = document.getElementById('statusText');
     
-    if (!statusDiv || !statusIcon || !statusText) return;
-    
     if (navigator.onLine) {
         statusDiv.className = 'status online';
         statusIcon.textContent = '✅';
         statusText.textContent = 'You are online / Online ka';
-        
-        setTimeout(() => {
-            syncWithGoogleSheets().catch(console.error);
-        }, 2000);
     } else {
         statusDiv.className = 'status offline';
         statusIcon.textContent = '📴';
-        statusText.textContent = 'You are offline / Offline ka - saving locally';
+        statusText.textContent = 'You are offline / Offline ka';
     }
 }
 
-// ==================== SEARCH FUNCTION ====================
+// ==================== SEARCH FUNCTIONS ====================
 window.searchStudent = async function() {
-    const name = document.getElementById('searchName')?.value.trim();
-    const dob = document.getElementById('searchDob')?.value.trim();
-    const school = document.getElementById('searchSchool')?.value;
+    const name = document.getElementById('searchName').value.trim();
+    const dob = document.getElementById('searchDob').value.trim();
+    const school = document.getElementById('searchSchool').value;
     
     if (!name || !dob || !school) {
-        showStatus('searchStatus', 'Please fill in all search fields / Punan ang lahat ng field', 'error');
+        showStatus('searchStatus', 'Please fill all fields', 'error');
         return;
     }
     
-    const loading = document.getElementById('searchLoading');
-    const studentInfo = document.getElementById('studentInfo');
-    const previousRecords = document.getElementById('previousRecords');
+    document.getElementById('searchLoading').classList.remove('hidden');
     
-    if (loading) loading.classList.remove('hidden');
-    if (studentInfo) studentInfo.classList.add('hidden');
-    if (previousRecords) previousRecords.classList.add('hidden');
+    const students = await searchStudents(name, dob, school);
     
-    try {
-        // Mock data for testing
-        setTimeout(() => {
-            displayStudentInfo({
-                completeName: name,
-                dob: dob,
-                school: school,
-                sex: 'Male / Lalaki',
-                age: '8',
-                parentName: 'Maria Santos',
-                contactNumber: '09123456789',
-                systemicConditions: 'None / Wala',
-                allergiesFood: 'None / Wala',
-                allergiesMedicines: 'Penicillin'
-            });
-            
-            if (loading) loading.classList.add('hidden');
-            showStatus('searchStatus', '✅ Student found! / Natagpuan ang mag-aaral!', 'success');
-        }, 1000);
-        
-    } catch (error) {
-        console.error('Search error:', error);
-        if (loading) loading.classList.add('hidden');
-        showStatus('searchStatus', '❌ Error: ' + error.message, 'error');
+    document.getElementById('searchLoading').classList.add('hidden');
+    
+    if (students.length > 0) {
+        currentStudent = students[0];
+        loadStudentToForm(currentStudent);
+        document.getElementById('studentForm').classList.remove('hidden');
+        showStatus('searchStatus', '✅ Student found!', 'success');
+        switchTab(2);
+    } else {
+        if (confirm('Student not found. Create new record?')) {
+            newStudent();
+        }
     }
 };
 
-function displayStudentInfo(student) {
-    document.getElementById('displayName').textContent = student.completeName || '';
-    document.getElementById('displayDob').textContent = student.dob || '';
-    document.getElementById('displaySex').textContent = student.sex || '';
-    document.getElementById('displayAge').textContent = student.age || '';
-    document.getElementById('displaySchool').textContent = student.school || '';
-    document.getElementById('displayParent').textContent = student.parentName || '';
-    document.getElementById('displayContact').textContent = student.contactNumber || '';
-    document.getElementById('displaySystemic').textContent = student.systemicConditions || 'None / Wala';
-    document.getElementById('displayFoodAllergy').textContent = student.allergiesFood || 'None / Wala';
-    document.getElementById('displayMedAllergy').textContent = student.allergiesMedicines || 'None / Wala';
+window.newStudent = function() {
+    document.getElementById('editName').value = '';
+    document.getElementById('editSex').value = '';
+    document.getElementById('editAge').value = '';
+    document.getElementById('editDob').value = '';
+    document.getElementById('editAddress').value = '';
+    document.getElementById('editSchool').value = '';
+    document.getElementById('editParent').value = '';
+    document.getElementById('editContact').value = '';
+    document.getElementById('editSystemic').value = '';
+    document.getElementById('editFoodAllergy').value = '';
+    document.getElementById('editMedAllergy').value = '';
     
-    document.getElementById('studentInfo').classList.remove('hidden');
+    currentStudent = null;
+    document.getElementById('studentForm').classList.remove('hidden');
+    showToast('Enter new student information', 'info');
+};
+
+window.saveStudentInfo = async function() {
+    const student = {
+        name: document.getElementById('editName').value,
+        sex: document.getElementById('editSex').value,
+        age: document.getElementById('editAge').value,
+        dob: document.getElementById('editDob').value,
+        address: document.getElementById('editAddress').value,
+        school: document.getElementById('editSchool').value,
+        parentName: document.getElementById('editParent').value,
+        contactNumber: document.getElementById('editContact').value,
+        systemicConditions: document.getElementById('editSystemic').value,
+        allergiesFood: document.getElementById('editFoodAllergy').value,
+        allergiesMedicines: document.getElementById('editMedAllergy').value
+    };
+    
+    if (!student.name || !student.dob || !student.school) {
+        showToast('Please fill required fields', 'error');
+        return;
+    }
+    
+    if (currentStudent) {
+        student.id = currentStudent.id;
+    }
+    
+    const saved = await saveStudent(student);
+    currentStudent = saved;
+    
+    document.getElementById('selectedStudentName').textContent = saved.name;
+    showToast('Student information saved!', 'success');
+    switchTab(2);
+};
+
+function loadStudentToForm(student) {
+    document.getElementById('editName').value = student.name || '';
+    document.getElementById('editSex').value = student.sex || '';
+    document.getElementById('editAge').value = student.age || '';
+    document.getElementById('editDob').value = student.dob || '';
+    document.getElementById('editAddress').value = student.address || '';
+    document.getElementById('editSchool').value = student.school || '';
+    document.getElementById('editParent').value = student.parentName || '';
+    document.getElementById('editContact').value = student.contactNumber || '';
+    document.getElementById('editSystemic').value = student.systemicConditions || '';
+    document.getElementById('editFoodAllergy').value = student.allergiesFood || '';
+    document.getElementById('editMedAllergy').value = student.allergiesMedicines || '';
+    
+    document.getElementById('selectedStudentName').textContent = student.name;
 }
 
-window.clearSearch = function() {
-    document.getElementById('searchName').value = '';
-    document.getElementById('searchDob').value = '';
-    document.getElementById('searchSchool').value = '';
+// ==================== DENTAL EXAM FUNCTIONS ====================
+document.getElementById('dentalExamForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
     
-    document.getElementById('studentInfo').classList.add('hidden');
-    document.getElementById('previousRecords').classList.add('hidden');
-    
-    const searchStatus = document.getElementById('searchStatus');
-    if (searchStatus) {
-        searchStatus.classList.add('hidden');
+    if (!currentStudent) {
+        showToast('Please select a student first', 'error');
+        switchTab(1);
+        return;
     }
     
+    const record = {
+        studentId: currentStudent.id,
+        studentName: currentStudent.name,
+        toothExtraction: document.getElementById('toothExtraction').value,
+        toothFilling: document.getElementById('toothFilling').value,
+        toothCleaning: document.getElementById('toothCleaning').value,
+        fluoride: document.getElementById('fluoride').value,
+        dentalConsult: document.getElementById('dentalConsult').value,
+        severeCavities: document.getElementById('severeCavities').value,
+        oralNotes: document.getElementById('oralNotes').value,
+        cleaningNotes: document.getElementById('cleaningNotes').value,
+        remarks: document.getElementById('remarks').value,
+        toothData: { ...toothStatus }
+    };
+    
+    await saveDentalRecord(record);
+    e.target.reset();
     resetTeeth();
-    
-    const form = document.getElementById('dentalForm');
-    if (form) form.reset();
-    document.getElementById('toothExtraction').value = '';
-    document.getElementById('toothFilling').value = '';
-    document.getElementById('toothCleaning').value = '';
-    
-    showToast('✨ Form cleared / Na-clear ang form', 'info');
-};
+});
 
-window.syncPendingRecords = syncWithGoogleSheets;
+// ==================== RECORDS FUNCTIONS ====================
+async function loadStudentsList() {
+    const students = await getAllStudents();
+    const list = document.getElementById('studentsList');
+    
+    list.innerHTML = '<h4>All Students:</h4>';
+    students.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'record-item';
+        div.innerHTML = `<strong>${s.name}</strong><br>${s.school} | ${s.dob}`;
+        div.onclick = () => showStudentRecords(s.id);
+        list.appendChild(div);
+    });
+}
+
+async function showStudentRecords(studentId) {
+    const records = await getStudentRecords(studentId);
+    const list = document.getElementById('studentRecords');
+    
+    if (records.length === 0) {
+        list.innerHTML = '<p>No dental records found</p>';
+        return;
+    }
+    
+    list.innerHTML = '<h4>Dental Records:</h4>';
+    records.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'record-item';
+        div.innerHTML = `
+            <div class="record-date">${new Date(r.date).toLocaleDateString()}</div>
+            <div>Extraction: ${r.toothExtraction || 'None'}</div>
+            <div>Filling: ${r.toothFilling || 'None'}</div>
+            <div>Notes: ${r.oralNotes || 'No notes'}</div>
+        `;
+        list.appendChild(div);
+    });
+}
 
 // ==================== INITIALIZATION ====================
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Page loaded, initializing...');
-    
-    try {
-        await openDB();
-        initTeeth();
-        populateTeeth();
-        updateOnlineStatus();
-        await updatePendingCount();
-        
-        if (navigator.onLine) {
-            const pending = await getPendingRecords();
-            if (pending.length > 0) {
-                showToast(`📤 Found ${pending.length} pending records to sync`, 'syncing');
-                setTimeout(syncWithGoogleSheets, 3000);
-            }
-        }
-    } catch (error) {
-        console.error('Initialization error:', error);
-        showToast('⚠️ Database initialization error', 'error');
-    }
+window.onload = async function() {
+    await openDB();
+    initTeeth();
+    populateTeeth();
+    updateOnlineStatus();
+    await getAllStudents();
     
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
-    
-    document.getElementById('dentalForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const record = {
-            studentName: document.getElementById('displayName')?.textContent || '',
-            school: document.getElementById('displaySchool')?.textContent || '',
-            toothExtraction: document.getElementById('toothExtraction')?.value || '',
-            toothFilling: document.getElementById('toothFilling')?.value || '',
-            toothCleaning: document.getElementById('toothCleaning')?.value || '',
-            fluoride: document.getElementById('fluoride')?.value || '',
-            dentalConsult: document.getElementById('dentalConsult')?.value || '',
-            severeCavities: document.getElementById('severeCavities')?.value || '',
-            oralNotes: document.getElementById('oralNotes')?.value || '',
-            cleaningNotes: document.getElementById('cleaningNotes')?.value || '',
-            remarks: document.getElementById('remarks')?.value || '',
-            toothData: toothStatus
-        };
-        
-        if (navigator.onLine) {
-            try {
-                const formData = new FormData();
-                formData.append('action', 'save');
-                formData.append('record', JSON.stringify(record));
-                
-                const response = await fetch(APPS_SCRIPT_URL, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (response.ok) {
-                    showToast('✅ Record saved to Google Sheets!', 'success');
-                    e.target.reset();
-                    resetTeeth();
-                } else {
-                    await saveRecordOffline(record);
-                }
-            } catch (error) {
-                console.log('Online save failed, saving offline:', error);
-                await saveRecordOffline(record);
-            }
-        } else {
-            await saveRecordOffline(record);
-        }
-    });
-    
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registered'))
-            .catch(err => console.log('Service Worker error:', err));
-    }
-});
+};
