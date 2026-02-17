@@ -1,1 +1,1775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <base target="_top">
+    <title>Dental Clinic Booking System</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes">
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+    <!-- IndexedDB wrapper for offline storage -->
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/dist/umd.js"></script>
+    <style>
+        :root {
+            --caribbean-current: #16697aff;
+            --moonstone: #489fb5ff;
+            --sky-blue: #82c0ccff;
+            --isabelline: #ede7e3ff;
+            --orange-peel: #ffa62bff;
+            --success: #34A853;
+            --warning: #FBBC05;
+            --danger: #EA4335;
+            --info: #4285F4;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--caribbean-current);
+            background: linear-gradient(135deg, var(--moonstone) 0%, var(--caribbean-current) 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(237, 231, 227, 0.98);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+            border: 1px solid rgba(130, 192, 204, 0.3);
+        }
+        
+        .header {
+            background: var(--isabelline);
+            color: var(--caribbean-current);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 2px solid var(--sky-blue);
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: clamp(1.5rem, 5vw, 2.5rem);
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        
+        .header p {
+            font-size: clamp(0.9rem, 3vw, 1.1rem);
+            opacity: 0.9;
+        }
+        
+        /* Bilingual Header */
+        .bilingual-title {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .bilingual-title .en {
+            color: var(--caribbean-current);
+        }
+        
+        .bilingual-title .ceb {
+            color: var(--moonstone);
+            font-size: 0.9em;
+        }
+        
+        .language-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: var(--caribbean-current);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .content {
+            padding: 15px;
+        }
+        
+        /* Navigation Tabs - Responsive */
+        .main-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--sky-blue);
+            flex-wrap: wrap;
+        }
+        
+        .main-tab {
+            padding: 12px 16px;
+            background: rgba(237, 231, 227, 0.8);
+            border: none;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            color: var(--caribbean-current);
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            flex: 1 1 auto;
+            min-width: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .main-tab.active {
+            background: var(--caribbean-current);
+            color: white;
+        }
+        
+        .main-tab-content {
+            display: none;
+        }
+        
+        .main-tab-content.active {
+            display: block;
+        }
+        
+        /* Bilingual Text */
+        .bilingual-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .bilingual-text .en {
+            font-weight: 600;
+            color: var(--caribbean-current);
+        }
+        
+        .bilingual-text .ceb {
+            font-size: 0.85em;
+            color: var(--moonstone);
+            font-style: italic;
+        }
+        
+        .bilingual-label {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 5px;
+        }
+        
+        .bilingual-label .en {
+            font-weight: 600;
+            color: var(--caribbean-current);
+            font-size: 0.9rem;
+        }
+        
+        .bilingual-label .ceb {
+            font-size: 0.8rem;
+            color: var(--moonstone);
+        }
+        
+        /* Calendar Styles */
+        .calendar-section {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow-x: auto;
+        }
+        
+        #calendar {
+            min-width: 600px;
+        }
+        
+        /* Responsive Calendar */
+        .fc-toolbar {
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .fc-toolbar-title {
+            font-size: clamp(1rem, 4vw, 1.5rem) !important;
+        }
+        
+        .fc-button {
+            padding: 6px 10px !important;
+            font-size: clamp(0.8rem, 2vw, 0.9rem) !important;
+        }
+        
+        /* Stats Grid - Responsive */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 15px 10px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid var(--info);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stat-number {
+            font-size: clamp(1.5rem, 5vw, 2rem);
+            font-weight: bold;
+            color: var(--caribbean-current);
+        }
+        
+        .stat-label {
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+            color: var(--moonstone);
+        }
+        
+        /* Patient Management Layout - Responsive */
+        .patient-management-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .patient-management-grid {
+                grid-template-columns: 1fr 1.5fr;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            .patient-management-grid {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+        
+        .patient-list-container, .patient-form-container {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .section-title {
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+            margin-bottom: 15px;
+            color: var(--caribbean-current);
+            border-bottom: 2px solid var(--sky-blue);
+            padding-bottom: 8px;
+        }
+        
+        .patient-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px solid var(--sky-blue);
+            border-radius: 10px;
+            background: white;
+        }
+        
+        .patient-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--sky-blue);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .patient-item:last-child {
+            border-bottom: none;
+        }
+        
+        .patient-item:hover {
+            background: rgba(130, 192, 204, 0.1);
+        }
+        
+        .patient-item.selected {
+            background: rgba(22, 105, 122, 0.1);
+            border-left: 4px solid var(--caribbean-current);
+        }
+        
+        .patient-name {
+            font-weight: 600;
+            font-size: clamp(1rem, 3vw, 1.1rem);
+            color: var(--caribbean-current);
+        }
+        
+        .patient-details {
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+            color: var(--moonstone);
+            margin-top: 5px;
+        }
+        
+        /* Form Styles - Responsive */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--caribbean-current);
+            font-size: clamp(0.8rem, 2.5vw, 0.9rem);
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid var(--sky-blue);
+            border-radius: 8px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--moonstone);
+            box-shadow: 0 0 0 3px rgba(72, 159, 181, 0.1);
+        }
+        
+        /* Treatments Grid - Responsive */
+        .treatments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .treatment-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(130, 192, 204, 0.1);
+            border-radius: 8px;
+            border: 1px solid var(--sky-blue);
+        }
+        
+        .treatment-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            margin-top: 2px;
+        }
+        
+        .treatment-checkbox .bilingual-text {
+            flex: 1;
+        }
+        
+        /* Button Styles - Responsive */
+        .btn {
+            background: linear-gradient(135deg, var(--caribbean-current), var(--moonstone));
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: clamp(0.9rem, 2.5vw, 1rem);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        @media (min-width: 768px) {
+            .btn {
+                width: auto;
+                margin-bottom: 0;
+            }
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(22, 105, 122, 0.3);
+        }
+        
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #2d8e47);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #e0a800);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #c5221f);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        /* Time Slots Grid - Responsive */
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 8px;
+            margin: 15px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(130, 192, 204, 0.1);
+            border-radius: 8px;
+        }
+        
+        .time-slot {
+            padding: 10px 5px;
+            text-align: center;
+            background: white;
+            border: 2px solid var(--sky-blue);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: clamp(0.8rem, 2vw, 0.9rem);
+        }
+        
+        .time-slot:hover {
+            background: var(--sky-blue);
+            color: white;
+            transform: scale(1.02);
+        }
+        
+        .time-slot.selected {
+            background: var(--caribbean-current);
+            color: white;
+            border-color: var(--caribbean-current);
+        }
+        
+        .time-slot.unavailable {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: #f0f0f0;
+            pointer-events: none;
+        }
+        
+        /* Modal Styles - Responsive */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: var(--isabelline);
+            padding: 15px;
+            border-bottom: 2px solid var(--sky-blue);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .modal-header h3 {
+            color: var(--caribbean-current);
+            margin: 0;
+            font-size: clamp(1.1rem, 4vw, 1.3rem);
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--caribbean-current);
+            padding: 0 10px;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px;
+            border-top: 2px solid var(--sky-blue);
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: var(--isabelline);
+            position: sticky;
+            bottom: 0;
+        }
+        
+        .modal-footer .btn {
+            flex: 1 1 auto;
+            margin: 0;
+        }
+        
+        /* Badge Styles */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .badge-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .badge-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .badge-info {
+            background: var(--info);
+            color: white;
+        }
+        
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(130, 192, 204, 0.3);
+            border-top: 4px solid var(--caribbean-current);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Appointment Details */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin: 15px 0;
+        }
+        
+        @media (min-width: 480px) {
+            .info-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: var(--caribbean-current);
+            font-size: 0.9rem;
+        }
+        
+        .info-value {
+            color: var(--moonstone);
+            font-size: 1rem;
+            word-break: break-word;
+        }
+        
+        /* Utility Classes */
+        .hidden {
+            display: none !important;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .mt-20 {
+            margin-top: 20px;
+        }
+        
+        .mb-10 {
+            margin-bottom: 10px;
+        }
+        
+        /* Touch-friendly improvements */
+        button, .patient-item, .time-slot {
+            touch-action: manipulation;
+        }
+        
+        /* Prevent zoom on input focus for iOS */
+        @supports (-webkit-touch-callout: none) {
+            input, select, textarea {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="language-indicator">EN / CEB</div>
+            <div class="bilingual-title">
+                <span class="en">🦷 Dental Clinic Booking System</span>
+                <span class="ceb">🦷 Sistema sa Pag-book sa Dental Clinic</span>
+            </div>
+            <div class="bilingual-title">
+                <span class="en">Manage appointments and patient records</span>
+                <span class="ceb">Pagdumala sa mga appointment ug rekord sa pasyente</span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <!-- Main Navigation Tabs - Bilingual -->
+            <div class="main-tabs">
+                <button class="main-tab active" onclick="switchMainTab('calendar')">
+                    <span>📅</span>
+                    <span class="bilingual-text">
+                        <span class="en">Calendar</span>
+                        <span class="ceb">Kalendaryo</span>
+                    </span>
+                </button>
+                <button class="main-tab" onclick="switchMainTab('patients')">
+                    <span>👥</span>
+                    <span class="bilingual-text">
+                        <span class="en">Patients</span>
+                        <span class="ceb">Pasyente</span>
+                    </span>
+                </button>
+                <button class="main-tab" onclick="switchMainTab('appointments')">
+                    <span>📋</span>
+                    <span class="bilingual-text">
+                        <span class="en">Appointments</span>
+                        <span class="ceb">Appointment</span>
+                    </span>
+                </button>
+            </div>
+            
+            <!-- Calendar Tab Content -->
+            <div id="calendarTab" class="main-tab-content active">
+                <div class="calendar-section">
+                    <div id="calendar"></div>
+                </div>
+                
+                <!-- Quick Stats - Bilingual -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="todayCount">0</div>
+                        <div class="stat-label">
+                            <span class="bilingual-text">
+                                <span class="en">Today's Appointments</span>
+                                <span class="ceb">Appointment Karon</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--warning);">
+                        <div class="stat-number" id="upcomingCount">0</div>
+                        <div class="stat-label">
+                            <span class="bilingual-text">
+                                <span class="en">Upcoming</span>
+                                <span class="ceb">Umaabot</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: var(--success);">
+                        <div class="stat-number" id="completedCount">0</div>
+                        <div class="stat-label">
+                            <span class="bilingual-text">
+                                <span class="en">Completed</span>
+                                <span class="ceb">Nahuman</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Patients Tab Content -->
+            <div id="patientsTab" class="main-tab-content">
+                <div class="patient-management-grid">
+                    <!-- Patient List -->
+                    <div class="patient-list-container">
+                        <h2 class="section-title">
+                            <span class="bilingual-text">
+                                <span class="en">👥 Patient List</span>
+                                <span class="ceb">Listahan sa Pasyente</span>
+                            </span>
+                        </h2>
+                        <button class="btn btn-success btn-sm" onclick="showAddPatientModal()" style="margin-bottom: 15px;">
+                            <span>➕</span>
+                            <span class="bilingual-text">
+                                <span class="en">Add New Patient</span>
+                                <span class="ceb">Bag-ong Pasyente</span>
+                            </span>
+                        </button>
+                        <div class="patient-list" id="patientList"></div>
+                    </div>
+                    
+                    <!-- Patient Form -->
+                    <div class="patient-form-container">
+                        <h2 class="section-title">
+                            <span class="bilingual-text">
+                                <span class="en">Patient Information</span>
+                                <span class="ceb">Impormasyon sa Pasyente</span>
+                            </span>
+                        </h2>
+                        <form id="patientForm" onsubmit="savePatient(event)">
+                            <input type="hidden" id="patientId">
+                            
+                            <div class="form-group">
+                                <div class="bilingual-label">
+                                    <span class="en">Full Name</span>
+                                    <span class="ceb">Bug-os nga Ngalan</span>
+                                </div>
+                                <input type="text" id="patientName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="bilingual-label">
+                                    <span class="en">Parent/Guardian Name</span>
+                                    <span class="ceb">Ngalan sa Ginikanan/Guardian</span>
+                                </div>
+                                <input type="text" id="parentName" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="bilingual-label">
+                                    <span class="en">Contact Number</span>
+                                    <span class="ceb">Numero sa Kontak</span>
+                                </div>
+                                <input type="tel" id="contactNumber" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="bilingual-label">
+                                    <span class="en">Email</span>
+                                    <span class="ceb">Email</span>
+                                </div>
+                                <input type="email" id="email">
+                            </div>
+                            
+                            <div class="form-group">
+                                <div class="bilingual-label">
+                                    <span class="en">Address</span>
+                                    <span class="ceb">Address</span>
+                                </div>
+                                <input type="text" id="address">
+                            </div>
+                            
+                            <h3 class="section-title" style="font-size: 1.1rem;">
+                                <span class="bilingual-text">
+                                    <span class="en">Approved Treatments</span>
+                                    <span class="ceb">Gitugot nga mga Pagtambal</span>
+                                </span>
+                            </h3>
+                            
+                            <div class="treatments-grid">
+                                <label class="treatment-checkbox">
+                                    <input type="checkbox" id="treatmentCleaning">
+                                    <span class="bilingual-text">
+                                        <span class="en">Cleaning</span>
+                                        <span class="ceb">Paglimpyo</span>
+                                    </span>
+                                </label>
+                                
+                                <label class="treatment-checkbox">
+                                    <input type="checkbox" id="treatmentExtractionPerm">
+                                    <span class="bilingual-text">
+                                        <span class="en">Extraction (Permanent)</span>
+                                        <span class="ceb">Pag-ibot (Permanente)</span>
+                                    </span>
+                                </label>
+                                
+                                <label class="treatment-checkbox">
+                                    <input type="checkbox" id="treatmentExtractionTemp">
+                                    <span class="bilingual-text">
+                                        <span class="en">Extraction (Temporary)</span>
+                                        <span class="ceb">Pag-ibot (Temporaryo)</span>
+                                    </span>
+                                </label>
+                                
+                                <label class="treatment-checkbox">
+                                    <input type="checkbox" id="treatmentFilling">
+                                    <span class="bilingual-text">
+                                        <span class="en">Filling</span>
+                                        <span class="ceb">Pagpasta</span>
+                                    </span>
+                                </label>
+                                
+                                <label class="treatment-checkbox">
+                                    <input type="checkbox" id="treatmentSealant">
+                                    <span class="bilingual-text">
+                                        <span class="en">Sealant</span>
+                                        <span class="ceb">Sealant</span>
+                                    </span>
+                                </label>
+                                
+                                <label class="treatment-checkbox">
+                                    <input type="checkbox" id="treatmentGeneral">
+                                    <span class="bilingual-text">
+                                        <span class="en">General Treatment</span>
+                                        <span class="ceb">Kinatibuk-ang Pagtambal</span>
+                                    </span>
+                                </label>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <button type="submit" class="btn btn-success">
+                                    <span>💾</span>
+                                    <span class="bilingual-text">
+                                        <span class="en">Save Patient</span>
+                                        <span class="ceb">Tipigi</span>
+                                    </span>
+                                </button>
+                                <button type="button" class="btn btn-secondary" onclick="clearPatientForm()">
+                                    <span>🔄</span>
+                                    <span class="bilingual-text">
+                                        <span class="en">Clear</span>
+                                        <span class="ceb">Limpyohi</span>
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Appointments Tab Content -->
+            <div id="appointmentsTab" class="main-tab-content">
+                <div class="patient-list-container">
+                    <h2 class="section-title">
+                        <span class="bilingual-text">
+                            <span class="en">📋 All Appointments</span>
+                            <span class="ceb">Tanang Appointment</span>
+                        </span>
+                    </h2>
+                    
+                    <button class="btn btn-success" onclick="showBookAppointmentModal()" style="margin-bottom: 15px;">
+                        <span>➕</span>
+                        <span class="bilingual-text">
+                            <span class="en">New Appointment</span>
+                            <span class="ceb">Bag-ong Appointment</span>
+                        </span>
+                    </button>
+                    
+                    <div class="patient-list" id="appointmentList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Appointment Details Modal -->
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <span class="bilingual-text">
+                        <span class="en">Appointment Details</span>
+                        <span class="ceb">Detalye sa Appointment</span>
+                    </span>
+                </h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" onclick="closeModal()">
+                    <span class="bilingual-text">
+                        <span class="en">Close</span>
+                        <span class="ceb">Sirado</span>
+                    </span>
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="editAppointment()">
+                    <span class="bilingual-text">
+                        <span class="en">Edit</span>
+                        <span class="ceb">Usba</span>
+                    </span>
+                </button>
+                <button class="btn btn-sm btn-danger" onclick="deleteAppointment()">
+                    <span class="bilingual-text">
+                        <span class="en">Delete</span>
+                        <span class="ceb">Tangtanga</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Book Appointment Modal -->
+    <div id="bookModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>
+                    <span class="bilingual-text">
+                        <span class="en">Book Appointment</span>
+                        <span class="ceb">Pag-book og Appointment</span>
+                    </span>
+                </h3>
+                <button class="modal-close" onclick="closeBookModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="bookModalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-sm btn-secondary" onclick="closeBookModal()">
+                    <span class="bilingual-text">
+                        <span class="en">Cancel</span>
+                        <span class="ceb">Kanselahon</span>
+                    </span>
+                </button>
+                <button class="btn btn-sm btn-success" onclick="confirmBooking()">
+                    <span class="bilingual-text">
+                        <span class="en">Confirm</span>
+                        <span class="ceb">Kumpirmahon</span>
+                    </span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FullCalendar JS -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+    
+    <script>
+        // ==================== GLOBAL VARIABLES ====================
+        let calendar;
+        let db;
+        let selectedAppointment = null;
+        let selectedPatient = null;
+        let availableSlots = [];
+        let selectedSlot = null;
+        
+        // ==================== INITIALIZATION ====================
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            await initDB();
+            initializeCalendar();
+            loadPatients();
+            loadAllAppointments();
+        });
+        
+        async function initDB() {
+            db = await idb.openDB('DentalClinicDB', 1, {
+                upgrade(db) {
+                    // Patients store
+                    if (!db.objectStoreNames.contains('patients')) {
+                        const patientStore = db.createObjectStore('patients', { keyPath: 'id', autoIncrement: true });
+                        patientStore.createIndex('name', 'name');
+                        patientStore.createIndex('contact', 'contactNumber');
+                    }
+                    
+                    // Appointments store
+                    if (!db.objectStoreNames.contains('appointments')) {
+                        const appointmentStore = db.createObjectStore('appointments', { keyPath: 'id', autoIncrement: true });
+                        appointmentStore.createIndex('patientId', 'patientId');
+                        appointmentStore.createIndex('date', 'date');
+                        appointmentStore.createIndex('status', 'status');
+                    }
+                }
+            });
+            console.log('Database initialized');
+        }
+        
+        // ==================== CALENDAR FUNCTIONS ====================
+        
+        function initializeCalendar() {
+            const calendarEl = document.getElementById('calendar');
+            
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: window.innerWidth < 768 ? 'timeGridDay' : 'timeGridWeek',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: window.innerWidth < 768 ? 'dayGridMonth,timeGridDay' : 'dayGridMonth,timeGridWeek,timeGridDay'
+                },
+                slotMinTime: '08:00:00',
+                slotMaxTime: '17:00:00',
+                allDaySlot: false,
+                slotDuration: '00:30:00',
+                height: 'auto',
+                firstDay: 1,
+                locale: 'en',
+                
+                eventClassNames: function(arg) {
+                    const status = arg.event.extendedProps.status || 'upcoming';
+                    return ['appointment-' + status];
+                },
+                
+                eventClick: function(info) {
+                    showAppointmentDetails(info.event);
+                },
+                
+                dateClick: function(info) {
+                    switchMainTab('appointments');
+                    showBookAppointmentModal(info.dateStr);
+                },
+                
+                events: function(fetchInfo, successCallback, failureCallback) {
+                    loadCalendarAppointments(fetchInfo.startStr, fetchInfo.endStr, successCallback, failureCallback);
+                },
+                
+                windowResize: function(view) {
+                    if (window.innerWidth < 768) {
+                        calendar.changeView('timeGridDay');
+                    } else {
+                        calendar.changeView('timeGridWeek');
+                    }
+                }
+            });
+            
+            calendar.render();
+        }
+        
+        async function loadCalendarAppointments(startDate, endDate, successCallback, failureCallback) {
+            try {
+                const tx = db.transaction('appointments', 'readonly');
+                const store = tx.objectStore('appointments');
+                const allAppointments = await store.getAll();
+                
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+                
+                const filteredAppointments = allAppointments.filter(apt => {
+                    const aptDate = new Date(apt.date);
+                    return aptDate >= start && aptDate <= end;
+                });
+                
+                // Update stats
+                updateAppointmentStats(allAppointments);
+                
+                // Get patient details for each appointment
+                const events = await Promise.all(filteredAppointments.map(async apt => {
+                    const patient = await getPatient(apt.patientId);
+                    return {
+                        id: apt.id.toString(),
+                        title: patient ? patient.name : 'Unknown',
+                        start: apt.date,
+                        end: new Date(new Date(apt.date).getTime() + (apt.duration || 30) * 60000).toISOString(),
+                        extendedProps: {
+                            patientName: patient ? patient.name : 'Unknown',
+                            contactNumber: patient ? patient.contactNumber : '',
+                            description: apt.notes || '',
+                            status: apt.status || 'upcoming',
+                            location: apt.location || 'Dental Clinic',
+                            treatmentType: apt.treatmentType
+                        },
+                        backgroundColor: getEventColor(apt.treatmentType),
+                        borderColor: getEventColor(apt.treatmentType)
+                    };
+                }));
+                
+                successCallback(events);
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+                failureCallback(error);
+            }
+        }
+        
+        function getEventColor(treatmentType) {
+            const colors = {
+                'Cleaning': '#4285F4',
+                'Extraction Permanent': '#EA4335',
+                'Extraction Temporary': '#EA4335',
+                'Filling': '#34A853',
+                'Sealant': '#FBBC05',
+                'General Checkup': '#9AA0A6'
+            };
+            return colors[treatmentType] || '#9AA0A6';
+        }
+        
+        function updateAppointmentStats(appointments) {
+            const today = new Date().toDateString();
+            let todayCount = 0;
+            let upcomingCount = 0;
+            let completedCount = 0;
+            
+            appointments.forEach(apt => {
+                const aptDate = new Date(apt.date).toDateString();
+                
+                if (aptDate === today) {
+                    todayCount++;
+                }
+                
+                if (apt.status === 'upcoming') {
+                    upcomingCount++;
+                } else if (apt.status === 'completed') {
+                    completedCount++;
+                }
+            });
+            
+            document.getElementById('todayCount').textContent = todayCount;
+            document.getElementById('upcomingCount').textContent = upcomingCount;
+            document.getElementById('completedCount').textContent = completedCount;
+        }
+        
+        // ==================== PATIENT FUNCTIONS ====================
+        
+        async function loadPatients() {
+            try {
+                const tx = db.transaction('patients', 'readonly');
+                const store = tx.objectStore('patients');
+                const patients = await store.getAll();
+                
+                const patientList = document.getElementById('patientList');
+                
+                if (patients.length === 0) {
+                    patientList.innerHTML = `
+                        <div class="patient-item">
+                            <div class="bilingual-text">
+                                <span class="en">No patients found. Add a new patient to get started.</span>
+                                <span class="ceb">Walay nakit-ang pasyente. Pagdugang bag-ong pasyente para magsugod.</span>
+                            </div>
+                        </div>`;
+                    return;
+                }
+                
+                patientList.innerHTML = patients.map(patient => `
+                    <div class="patient-item" onclick="selectPatient(${patient.id})">
+                        <div class="patient-name">${patient.name || 'Unknown'}</div>
+                        <div class="patient-details">
+                            ${patient.contactNumber || ''} | ${patient.parentName || ''}
+                        </div>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('Error loading patients:', error);
+            }
+        }
+        
+        async function getPatient(id) {
+            try {
+                const tx = db.transaction('patients', 'readonly');
+                const store = tx.objectStore('patients');
+                return await store.get(Number(id));
+            } catch (error) {
+                console.error('Error getting patient:', error);
+                return null;
+            }
+        }
+        
+        async function selectPatient(id) {
+            try {
+                const patient = await getPatient(id);
+                if (patient) {
+                    document.querySelectorAll('.patient-item').forEach(item => item.classList.remove('selected'));
+                    event.currentTarget.classList.add('selected');
+                    
+                    document.getElementById('patientId').value = patient.id || '';
+                    document.getElementById('patientName').value = patient.name || '';
+                    document.getElementById('parentName').value = patient.parentName || '';
+                    document.getElementById('contactNumber').value = patient.contactNumber || '';
+                    document.getElementById('email').value = patient.email || '';
+                    document.getElementById('address').value = patient.address || '';
+                    
+                    // Set treatment checkboxes
+                    document.getElementById('treatmentCleaning').checked = patient.treatments?.cleaning || false;
+                    document.getElementById('treatmentExtractionPerm').checked = patient.treatments?.extractionPermanent || false;
+                    document.getElementById('treatmentExtractionTemp').checked = patient.treatments?.extractionTemporary || false;
+                    document.getElementById('treatmentFilling').checked = patient.treatments?.filling || false;
+                    document.getElementById('treatmentSealant').checked = patient.treatments?.sealant || false;
+                    document.getElementById('treatmentGeneral').checked = patient.treatments?.general || false;
+                }
+            } catch (error) {
+                console.error('Error selecting patient:', error);
+            }
+        }
+        
+        function clearPatientForm() {
+            document.getElementById('patientId').value = '';
+            document.getElementById('patientName').value = '';
+            document.getElementById('parentName').value = '';
+            document.getElementById('contactNumber').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('address').value = '';
+            
+            document.getElementById('treatmentCleaning').checked = false;
+            document.getElementById('treatmentExtractionPerm').checked = false;
+            document.getElementById('treatmentExtractionTemp').checked = false;
+            document.getElementById('treatmentFilling').checked = false;
+            document.getElementById('treatmentSealant').checked = false;
+            document.getElementById('treatmentGeneral').checked = false;
+            
+            document.querySelectorAll('.patient-item').forEach(item => item.classList.remove('selected'));
+        }
+        
+        async function savePatient(event) {
+            event.preventDefault();
+            
+            try {
+                const patientId = document.getElementById('patientId').value;
+                
+                const patient = {
+                    name: document.getElementById('patientName').value,
+                    parentName: document.getElementById('parentName').value,
+                    contactNumber: document.getElementById('contactNumber').value,
+                    email: document.getElementById('email').value,
+                    address: document.getElementById('address').value,
+                    treatments: {
+                        cleaning: document.getElementById('treatmentCleaning').checked,
+                        extractionPermanent: document.getElementById('treatmentExtractionPerm').checked,
+                        extractionTemporary: document.getElementById('treatmentExtractionTemp').checked,
+                        filling: document.getElementById('treatmentFilling').checked,
+                        sealant: document.getElementById('treatmentSealant').checked,
+                        general: document.getElementById('treatmentGeneral').checked
+                    },
+                    createdAt: new Date().toISOString()
+                };
+                
+                if (patientId) {
+                    patient.id = Number(patientId);
+                }
+                
+                const tx = db.transaction('patients', 'readwrite');
+                const store = tx.objectStore('patients');
+                await store.put(patient);
+                await tx.done;
+                
+                alert('✓ Saved successfully! | Malampuson nga natipigan!');
+                clearPatientForm();
+                loadPatients();
+                
+            } catch (error) {
+                console.error('Error saving patient:', error);
+                alert('✗ Error occurred | Adunay nahitabo nga sayup');
+            }
+        }
+        
+        async function deletePatient(id) {
+            if (!confirm('Are you sure? | Sigurado ka ba?')) return;
+            
+            try {
+                const tx = db.transaction('patients', 'readwrite');
+                const store = tx.objectStore('patients');
+                await store.delete(Number(id));
+                await tx.done;
+                
+                alert('✓ Deleted successfully! | Malampuson nga natangtang!');
+                clearPatientForm();
+                loadPatients();
+                
+            } catch (error) {
+                console.error('Error deleting patient:', error);
+                alert('✗ Error occurred | Adunay nahitabo nga sayup');
+            }
+        }
+        
+        // ==================== APPOINTMENT FUNCTIONS ====================
+        
+        async function loadAllAppointments() {
+            try {
+                const tx = db.transaction('appointments', 'readonly');
+                const store = tx.objectStore('appointments');
+                const appointments = await store.getAll();
+                
+                const appointmentList = document.getElementById('appointmentList');
+                
+                if (appointments.length === 0) {
+                    appointmentList.innerHTML = `
+                        <div class="patient-item">
+                            <div class="bilingual-text">
+                                <span class="en">No appointments found.</span>
+                                <span class="ceb">Walay nakit-ang appointment.</span>
+                            </div>
+                        </div>`;
+                    return;
+                }
+                
+                // Sort by date (most recent first)
+                appointments.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                const listHtml = await Promise.all(appointments.map(async apt => {
+                    const patient = await getPatient(apt.patientId);
+                    const date = new Date(apt.date);
+                    return `
+                        <div class="patient-item" onclick="showAppointmentDetailsById(${apt.id})">
+                            <div class="patient-name">${patient ? patient.name : 'Unknown'}</div>
+                            <div class="patient-details">
+                                ${date.toLocaleDateString()} at ${formatTime(date)} | 
+                                <span class="badge badge-${apt.status === 'upcoming' ? 'info' : apt.status === 'completed' ? 'success' : 'warning'}">
+                                    ${apt.status || 'upcoming'}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }));
+                
+                appointmentList.innerHTML = listHtml.join('');
+                
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+            }
+        }
+        
+        async function showAppointmentDetails(event) {
+            const appointment = {
+                id: event.id,
+                patientName: event.extendedProps.patientName,
+                contactNumber: event.extendedProps.contactNumber,
+                date: event.start,
+                notes: event.extendedProps.description,
+                status: event.extendedProps.status,
+                location: event.extendedProps.location,
+                treatmentType: event.extendedProps.treatmentType
+            };
+            
+            await showAppointmentDetailsModal(appointment);
+        }
+        
+        async function showAppointmentDetailsById(id) {
+            try {
+                const tx = db.transaction('appointments', 'readonly');
+                const store = tx.objectStore('appointments');
+                const appointment = await store.get(Number(id));
+                
+                if (appointment) {
+                    const patient = await getPatient(appointment.patientId);
+                    await showAppointmentDetailsModal({
+                        id: appointment.id,
+                        patientName: patient ? patient.name : 'Unknown',
+                        contactNumber: patient ? patient.contactNumber : '',
+                        date: appointment.date,
+                        notes: appointment.notes,
+                        status: appointment.status,
+                        location: appointment.location,
+                        treatmentType: appointment.treatmentType
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading appointment:', error);
+            }
+        }
+        
+        async function showAppointmentDetailsModal(appointment) {
+            selectedAppointment = appointment;
+            
+            const modalBody = document.getElementById('modalBody');
+            const date = new Date(appointment.date);
+            
+            modalBody.innerHTML = `
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Patient:</span>
+                                <span class="ceb">Pasyente:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">${appointment.patientName}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Contact:</span>
+                                <span class="ceb">Kontak:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">${appointment.contactNumber || 'N/A'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Date:</span>
+                                <span class="ceb">Petsa:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">${date.toLocaleDateString()}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Time:</span>
+                                <span class="ceb">Oras:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">${formatTime(date)}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Treatment:</span>
+                                <span class="ceb">Pagtambal:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">${appointment.treatmentType || 'General Checkup'}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Status:</span>
+                                <span class="ceb">Status:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">
+                            <span class="badge badge-${appointment.status === 'upcoming' ? 'info' : appointment.status === 'completed' ? 'success' : 'warning'}">
+                                ${appointment.status}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+                
+                ${appointment.notes ? `
+                    <div class="info-item" style="grid-column: 1/-1;">
+                        <span class="info-label">
+                            <span class="bilingual-text">
+                                <span class="en">Notes:</span>
+                                <span class="ceb">Mga Nota:</span>
+                            </span>
+                        </span>
+                        <span class="info-value">${appointment.notes}</span>
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('appointmentModal').classList.add('active');
+        }
+        
+        function closeModal() {
+            document.getElementById('appointmentModal').classList.remove('active');
+            selectedAppointment = null;
+        }
+        
+        function editAppointment() {
+            if (!selectedAppointment) return;
+            closeModal();
+            showBookAppointmentModal(null, selectedAppointment);
+        }
+        
+        async function deleteAppointment() {
+            if (!selectedAppointment) return;
+            if (!confirm('Are you sure? | Sigurado ka ba?')) return;
+            
+            try {
+                const tx = db.transaction('appointments', 'readwrite');
+                const store = tx.objectStore('appointments');
+                await store.delete(Number(selectedAppointment.id));
+                await tx.done;
+                
+                alert('✓ Deleted successfully! | Malampuson nga natangtang!');
+                closeModal();
+                refreshCalendar();
+                loadAllAppointments();
+                
+            } catch (error) {
+                console.error('Error deleting appointment:', error);
+                alert('✗ Error occurred | Adunay nahitabo nga sayup');
+            }
+        }
+        
+        // ==================== BOOKING FUNCTIONS ====================
+        
+        async function showBookAppointmentModal(selectedDate = null, appointmentToEdit = null) {
+            const patients = await db.transaction('patients', 'readonly').objectStore('patients').getAll();
+            
+            const modalBody = document.getElementById('bookModalBody');
+            const today = new Date().toISOString().split('T')[0];
+            
+            let patientOptions = '<option value="">' + 
+                '<span class="en">Select Patient</span>' +
+                '</option>';
+            
+            patients.forEach(patient => {
+                const selected = appointmentToEdit && appointmentToEdit.patientId === patient.id ? 'selected' : '';
+                patientOptions += `<option value="${patient.id}" ${selected}>${patient.name}</option>`;
+            });
+            
+            modalBody.innerHTML = `
+                <div class="form-group">
+                    <div class="bilingual-label">
+                        <span class="en">Select Patient</span>
+                        <span class="ceb">Pagpili og Pasyente</span>
+                    </div>
+                    <select id="bookingPatientId" required>
+                        <option value="">-- ${'Select Patient'} | ${'Pagpili og Pasyente'} --</option>
+                        ${patientOptions}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <div class="bilingual-label">
+                        <span class="en">Select Date</span>
+                        <span class="ceb">Pagpili og Petsa</span>
+                    </div>
+                    <input type="date" id="bookingDate" min="${today}" value="${selectedDate || appointmentToEdit?.date?.split('T')[0] || today}" onchange="loadTimeSlots()">
+                </div>
+                
+                <div class="form-group">
+                    <div class="bilingual-label">
+                        <span class="en">Select Time</span>
+                        <span class="ceb">Pagpili og Oras</span>
+                    </div>
+                    <div id="timeSlotsContainer" class="time-slots">
+                        <div style="grid-column: 1/-1; text-align: center; padding: 20px;">
+                            <span class="bilingual-text">
+                                <span class="en">Select a date to see available time slots</span>
+                                <span class="ceb">Pagpili og petsa para makita ang available nga oras</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="bilingual-label">
+                        <span class="en">Treatment Type</span>
+                        <span class="ceb">Matang sa Pagtambal</span>
+                    </div>
+                    <select id="bookingTreatmentType">
+                        <option value="General Checkup">General Checkup</option>
+                        <option value="Cleaning">Cleaning | Paglimpyo</option>
+                        <option value="Extraction Permanent">Extraction (Permanent) | Pag-ibot (Permanente)</option>
+                        <option value="Extraction Temporary">Extraction (Temporary) | Pag-ibot (Temporaryo)</option>
+                        <option value="Filling">Filling | Pagpasta</option>
+                        <option value="Sealant">Sealant</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <div class="bilingual-label">
+                        <span class="en">Notes</span>
+                        <span class="ceb">Mga Nota</span>
+                    </div>
+                    <textarea id="bookingNotes" rows="3">${appointmentToEdit?.notes || ''}</textarea>
+                </div>
+            `;
+            
+            if (appointmentToEdit) {
+                selectedAppointment = appointmentToEdit;
+                setTimeout(() => {
+                    document.getElementById('bookingDate').value = appointmentToEdit.date.split('T')[0];
+                    document.getElementById('bookingTreatmentType').value = appointmentToEdit.treatmentType || 'General Checkup';
+                    loadTimeSlots();
+                }, 100);
+            }
+            
+            document.getElementById('bookModal').classList.add('active');
+        }
+        
+        function closeBookModal() {
+            document.getElementById('bookModal').classList.remove('active');
+            selectedPatient = null;
+            selectedSlot = null;
+            availableSlots = [];
+            selectedAppointment = null;
+        }
+        
+        async function loadTimeSlots() {
+            const date = document.getElementById('bookingDate').value;
+            if (!date) return;
+            
+            const container = document.getElementById('timeSlotsContainer');
+            
+            // Generate time slots (8 AM to 5 PM, 30-min intervals)
+            const slots = [];
+            for (let hour = 8; hour < 17; hour++) {
+                for (let minute = 0; minute < 60; minute += 30) {
+                    if (hour === 12) continue; // Skip lunch
+                    
+                    const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                    
+                    // Check if slot is available
+                    const isAvailable = await checkSlotAvailability(date, timeStr);
+                    
+                    slots.push({
+                        time: timeStr,
+                        datetime: `${date}T${timeStr}`,
+                        available: isAvailable
+                    });
+                }
+            }
+            
+            availableSlots = slots;
+            
+            let html = '';
+            slots.forEach(slot => {
+                const isSelected = selectedSlot === slot.time || 
+                                 (selectedAppointment && new Date(selectedAppointment.date).toTimeString().slice(0,5) === slot.time);
+                
+                html += `
+                    <div class="time-slot ${slot.available ? '' : 'unavailable'} ${isSelected ? 'selected' : ''}" 
+                         onclick="selectTimeSlot('${slot.time}', this)"
+                         data-time="${slot.time}">
+                        ${formatTimeString(slot.time)}
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function checkSlotAvailability(date, time) {
+            try {
+                const slotDateTime = new Date(`${date}T${time}`);
+                
+                const tx = db.transaction('appointments', 'readonly');
+                const store = tx.objectStore('appointments');
+                const appointments = await store.getAll();
+                
+                // Check if any appointment conflicts with this slot
+                return !appointments.some(apt => {
+                    if (apt.status === 'cancelled') return false;
+                    
+                    const aptStart = new Date(apt.date);
+                    const aptEnd = new Date(aptStart.getTime() + (apt.duration || 30) * 60000);
+                    
+                    return slotDateTime >= aptStart && slotDateTime < aptEnd;
+                });
+            } catch (error) {
+                console.error('Error checking slot availability:', error);
+                return true;
+            }
+        }
+        
+        function selectTimeSlot(time, element) {
+            document.querySelectorAll('.time-slot').forEach(slot => {
+                slot.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedSlot = time;
+        }
+        
+        async function confirmBooking() {
+            const patientId = document.getElementById('bookingPatientId').value;
+            const date = document.getElementById('bookingDate').value;
+            const treatmentType = document.getElementById('bookingTreatmentType').value;
+            const notes = document.getElementById('bookingNotes').value;
+            
+            if (!patientId) {
+                alert('Please select a patient | Palihog pagpili og pasyente');
+                return;
+            }
+            
+            if (!date) {
+                alert('Please select a date | Palihog pagpili og petsa');
+                return;
+            }
+            
+            if (!selectedSlot && !selectedAppointment) {
+                alert('Please select a time | Palihog pagpili og oras');
+                return;
+            }
+            
+            try {
+                const appointment = {
+                    patientId: Number(patientId),
+                    date: selectedAppointment ? selectedAppointment.date : `${date}T${selectedSlot}`,
+                    treatmentType: treatmentType,
+                    duration: 30,
+                    notes: notes,
+                    status: 'upcoming',
+                    location: 'Dental Clinic',
+                    createdAt: new Date().toISOString()
+                };
+                
+                if (selectedAppointment && selectedAppointment.id) {
+                    appointment.id = Number(selectedAppointment.id);
+                }
+                
+                const tx = db.transaction('appointments', 'readwrite');
+                const store = tx.objectStore('appointments');
+                await store.put(appointment);
+                await tx.done;
+                
+                alert('✓ Appointment saved! | Malampuson nga natipigan ang appointment!');
+                closeBookModal();
+                refreshCalendar();
+                loadAllAppointments();
+                
+            } catch (error) {
+                console.error('Error saving appointment:', error);
+                alert('✗ Error occurred | Adunay nahitabo nga sayup');
+            }
+        }
+        
+        // ==================== UTILITY FUNCTIONS ====================
+        
+        function switchMainTab(tabName) {
+            document.querySelectorAll('.main-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.main-tab-content').forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`[onclick="switchMainTab('${tabName}')"]`).classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            if (tabName === 'calendar' && calendar) {
+                calendar.refetchEvents();
+            } else if (tabName === 'patients') {
+                loadPatients();
+            } else if (tabName === 'appointments') {
+                loadAllAppointments();
+            }
+        }
+        
+        function refreshCalendar() {
+            if (calendar) {
+                calendar.refetchEvents();
+            }
+        }
+        
+        function formatTime(date) {
+            return new Date(date).toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        }
+        
+        function formatTimeString(timeStr) {
+            const [hour, minute] = timeStr.split(':');
+            const hourNum = parseInt(hour);
+            const ampm = hourNum >= 12 ? 'PM' : 'AM';
+            const hour12 = hourNum % 12 || 12;
+            return `${hour12}:${minute} ${ampm}`;
+        }
+        
+        function showAddPatientModal() {
+            clearPatientForm();
+            switchMainTab('patients');
+        }
+    </script>
+</body>
+</html>
