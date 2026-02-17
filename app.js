@@ -507,6 +507,14 @@ async function getExamsForStudent(studentId) {
     return exams.sort((a, b) => new Date(b.date) - new Date(a.date));
 }
 
+async function loadPreviousExams(studentId) {
+    const exams = await getExamsForStudent(studentId);
+    if (exams.length > 1) {
+        displayPreviousExams(exams.slice(1));
+    } else {
+        document.getElementById('previousRecords')?.classList.add('hidden');
+    }
+}
 // ==================== DISPLAY FUNCTIONS ====================
 function displayConsolidatedInfo(record) {
     const formattedDob = formatDateForDisplay(record.dob);
@@ -739,41 +747,42 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
             req.onerror = () => rej(req.error);
         });
         console.log('Exam saved locally with ID', examId);
-
+        
         if (navigator.onLine) {
-            try {
-                const formData = new FormData();
-                formData.append('action', 'save');
-                formData.append('record', JSON.stringify(fullRecord));
+    try {
+        const formData = new FormData();
+        formData.append('action', 'save');
+        formData.append('record', JSON.stringify(fullRecord));
 
-                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-                if (response.ok) {
-                    // Create a fresh object for update – no fetching needed
-                    const updatedExam = {
-                        id: examId,
-                        studentId: currentStudentId,
-                        date: exam.date,
-                        data: fullRecord,
-                        synced: true
-                    };
-                    const updateTx = db.transaction('exams', 'readwrite');
-                    const updateStore = updateTx.objectStore('exams');
-                    await new Promise((res, rej) => {
-                        const req = updateStore.put(updatedExam);
-                        req.onsuccess = () => res();
-                        req.onerror = () => rej(req.error);
-                    });
-                    showToast('✅ Saved to Google Sheet and synced!', 'success');
-                } else {
-                    showToast('📱 Saved locally (will sync later)', 'offline');
-                }
-            } catch (error) {
-                console.error('Online sync error:', error);
-                showToast('📱 Saved locally (sync will retry later)', 'offline');
-            }
+        const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+        if (response.ok) {
+            // Deep clone fullRecord to avoid any non‑cloneable remnants
+            const clonedRecord = JSON.parse(JSON.stringify(fullRecord));
+            const updatedExam = {
+                id: examId,
+                studentId: currentStudentId,
+                date: exam.date,
+                data: clonedRecord,
+                synced: true
+            };
+            const updateTx = db.transaction('exams', 'readwrite');
+            const updateStore = updateTx.objectStore('exams');
+            await new Promise((res, rej) => {
+                const req = updateStore.put(updatedExam);
+                req.onsuccess = () => res();
+                req.onerror = () => rej(req.error);
+            });
+            showToast('✅ Saved to Google Sheet and synced!', 'success');
         } else {
-            showToast('📱 Saved offline (will sync when online)', 'offline');
+            showToast('📱 Saved locally (will sync later)', 'offline');
         }
+    } catch (error) {
+        console.error('Online sync error:', error);
+        showToast('📱 Saved locally (sync will retry later)', 'offline');
+    }
+} else {
+    showToast('📱 Saved offline (will sync when online)', 'offline');
+}
 
         // Reset form and go back to search mode
         e.target.reset();
