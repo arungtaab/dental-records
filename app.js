@@ -1,7 +1,7 @@
 // ==================== CONFIGURATION ====================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
 const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 8; // increment to ensure fresh stores
+const DB_VERSION = 9; // increment to ensure fresh stores
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
@@ -35,7 +35,6 @@ async function openDB() {
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             console.log('Upgrading database from', event.oldVersion, 'to', event.newVersion);
-            // clean slate
             Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
 
             // students store
@@ -44,7 +43,7 @@ async function openDB() {
             studentStore.createIndex('dob', 'dob', { unique: false });
             studentStore.createIndex('school', 'school', { unique: false });
 
-            // exams store
+            // exams store (dental records)
             const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
             examStore.createIndex('studentId', 'studentId', { unique: false });
             examStore.createIndex('date', 'date', { unique: false });
@@ -307,7 +306,7 @@ window.searchStudent = async function() {
                 currentStudent = localStudent;
                 currentStudentId = id;
                 displayStudentInfo(localStudent);
-                // Optionally also load online exams? For now just student.
+                // Optionally load online exams? Not implemented yet.
                 showStatus('searchStatus', '✅ Student found online and cached', 'success');
                 loading?.classList.add('hidden');
                 return;
@@ -484,13 +483,15 @@ window.loadExam = function(exam) {
     }
 };
 
-// ==================== DENTAL EXAM SAVE ====================
+// ==================== DENTAL EXAM SAVE (FIXED) ====================
 document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!currentStudentId) {
         showToast('Please select a student first', 'error');
         return;
     }
+
+    // Gather exam-specific fields
     const exam = {
         studentId: currentStudentId,
         studentName: currentStudent?.name,
@@ -509,6 +510,36 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         toothData: { ...toothStatus }
     };
 
+    // Merge with static student info to create a full record for Google Sheets
+    const fullRecord = {
+        // Static fields from currentStudent
+        completeName: currentStudent.name,
+        sex: currentStudent.sex,
+        age: currentStudent.age,
+        dob: currentStudent.dob,
+        address: currentStudent.address,
+        school: currentStudent.school,
+        parentName: currentStudent.parentName,
+        contactNumber: currentStudent.contactNumber,
+        systemicConditions: currentStudent.systemicConditions,
+        allergiesFood: currentStudent.allergiesFood,
+        allergiesMedicines: currentStudent.allergiesMedicines,
+
+        // Exam fields (will map to the corresponding columns)
+        toothExtraction: exam.toothExtraction,
+        toothFilling: exam.toothFilling,
+        toothCleaning: exam.toothCleaning,
+        fluoride: exam.fluoride,
+        dentalConsultations: exam.dentalConsult,      // match column name
+        severeCavities: exam.severeCavities,
+        oralExamNotes: exam.oralNotes,                // match column name
+        cleaningNotes: exam.cleaningNotes,
+        remarks: exam.remarks,
+        // Additional hygiene fields could be added here if you collect them
+        // hasToothbrush: ..., brushFrequency: ..., etc.
+    };
+
+    // Save exam locally for history
     await openDB();
     const tx = db.transaction('exams', 'readwrite');
     const store = tx.objectStore('exams');
@@ -518,7 +549,9 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         e.target.reset();
         resetTeeth();
         loadPreviousExams(currentStudentId);
-        savePending({ type: 'exam', data: exam });
+
+        // Save the full record to pending for sync
+        savePending({ type: 'exam', data: fullRecord });
         if (navigator.onLine) syncWithGoogleSheets();
     };
     req.onerror = () => showToast('❌ Save failed', 'error');
