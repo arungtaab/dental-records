@@ -1,1 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dental Analytics Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f7fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #16697a;
+            margin-bottom: 25px;
+            font-size: 2.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 span {
+            background: #489fb5;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 30px;
+            font-size: 0.5em;
+            font-weight: 400;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 16px;
+            padding: 25px 20px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+            text-align: center;
+            border-left: 6px solid #489fb5;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+        .stat-card h3 {
+            color: #16697a;
+            font-size: 1rem;
+            margin-bottom: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-card .value {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #16697a;
+            line-height: 1.2;
+        }
+        .stat-card .unit {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 8px;
+        }
+        .section {
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+        }
+        .section h2 {
+            color: #16697a;
+            margin-bottom: 20px;
+            font-size: 1.6rem;
+            border-bottom: 3px solid #82c0cc;
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section h2 i {
+            font-size: 1.8rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        th {
+            background: #82c0cc;
+            color: white;
+            padding: 14px 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        .chart-container {
+            height: 400px;
+            margin-top: 30px;
+        }
+        .loading {
+            text-align: center;
+            padding: 80px 20px;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .loading .spinner {
+            border: 5px solid #e9ecef;
+            border-top: 5px solid #16697a;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 25px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+        .badge {
+            background: #489fb5;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+        .treatment-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .treatment-item {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #dee2e6;
+        }
+        .treatment-item .count {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #16697a;
+        }
+        .treatment-item .label {
+            color: #495057;
+            font-size: 0.9rem;
+        }
+        @media (max-width: 600px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Dental Analytics Dashboard <span>real‑time</span></h1>
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading data from Google Sheets...</p>
+        </div>
+        <div id="content" style="display: none;">
+            <!-- Overall stats -->
+            <div class="stats-grid" id="overallStats"></div>
 
+            <!-- Treatments overview -->
+            <div class="section">
+                <h2>🦷 Common Treatments</h2>
+                <div id="treatmentCards" class="treatment-grid"></div>
+            </div>
+
+            <!-- School-wise table and chart -->
+            <div class="section">
+                <h2>🏫 School Performance</h2>
+                <div style="overflow-x: auto;">
+                    <table id="schoolTable">
+                        <thead>
+                            <tr>
+                                <th>School</th>
+                                <th>Students</th>
+                                <th>Visits</th>
+                                <th>Avg DMFT</th>
+                                <th>Cavity‑Free %</th>
+                                <th>Extractions</th>
+                                <th>Fillings</th>
+                                <th>Cleanings</th>
+                                <th>Fluoride</th>
+                            </tr>
+                        </thead>
+                        <tbody id="schoolTableBody"></tbody>
+                    </table>
+                </div>
+                <div class="chart-container">
+                    <canvas id="schoolChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Your Apps Script URL
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
+
+        // Helper: count comma‑separated FDI list
+        function countFDIList(str) {
+            if (!str || str.trim() === '') return 0;
+            return str.split(',').filter(item => item.trim() !== '').length;
+        }
+
+        // Helper: check if a value is truthy (for yes/no fields)
+        function isYes(val) {
+            if (!val) return false;
+            const v = val.toString().toLowerCase().trim();
+            return v === 'yes' || v === 'oo' || v === 'yes/oo' || v === 'true';
+        }
+
+        // Process all records
+        function processRecords(records) {
+            // Student set: key = name|dob|school
+            const studentSet = new Set();
+            const schoolData = {}; // school name -> aggregated stats
+            let totalVisits = 0;
+            let totalDMFT = 0;
+            let cavityFreeCount = 0;
+            let totalExtractions = 0, totalFillings = 0, totalCleanings = 0, totalFluoride = 0, totalConsultations = 0;
+
+            records.forEach(row => {
+                const name = row['Complete Name of Pupil / Kumpletong Ngalan ng Mag-aaral:'] || '';
+                const dob = row['Date of Birth / Petsa ng kapanganakan'] || '';
+                const school = row['School / Paaralan'] || 'Unknown';
+                if (!name || !school) return;
+
+                // Unique student key
+                const studentKey = `${name}|${dob}|${school}`;
+                studentSet.add(studentKey);
+
+                // DMFT components
+                const decayed = countFDIList(row['Tooth Decayed (enter the tooth using FDI numbering system, separate by commas) / Bulok na ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)']);
+                const missing = countFDIList(row['Tooth Missing (enter the tooth using FDI numbering system, separate by commas) / Nawawalang ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)']);
+                const filled = countFDIList(row['Tooth Filling (enter the tooth using FDI numbering system, separate by commas)/Pagpasta ng Ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)']);
+                const dmft = decayed + missing + filled;
+                totalDMFT += dmft;
+
+                // Cavity‑free = no decayed teeth in this visit
+                if (decayed === 0) cavityFreeCount++;
+
+                // Treatments
+                const extractions = countFDIList(row['Tooth Extraction (enter the tooth using FDI numbering system, separate by commas)/ Pagbunot ng Ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)']);
+                const fillings = filled; // same as above
+                const cleaning = row['Cleaning (Notes) / Paglilinis (Mga Tala)'] ? 1 : 0; // if any note, count as cleaning
+                const fluoride = isYes(row['Fluoride']) ? 1 : 0;
+                const consult = isYes(row['Dental Consultations/Konsultasyon sa Ngipin']) ? 1 : 0;
+
+                totalExtractions += extractions;
+                totalFillings += fillings;
+                totalCleanings += cleaning;
+                totalFluoride += fluoride;
+                totalConsultations += consult;
+
+                // School‑wise aggregation
+                if (!schoolData[school]) {
+                    schoolData[school] = {
+                        students: new Set(),
+                        visits: 0,
+                        dmftSum: 0,
+                        cavityFreeVisits: 0,
+                        extractions: 0,
+                        fillings: 0,
+                        cleanings: 0,
+                        fluoride: 0
+                    };
+                }
+                const s = schoolData[school];
+                s.students.add(studentKey);
+                s.visits++;
+                s.dmftSum += dmft;
+                if (decayed === 0) s.cavityFreeVisits++;
+                s.extractions += extractions;
+                s.fillings += fillings;
+                s.cleanings += cleaning;
+                s.fluoride += fluoride;
+            });
+
+            totalVisits = records.length;
+            const uniquePatients = studentSet.size;
+
+            // Compute averages and percentages
+            const avgDMFT = totalVisits ? (totalDMFT / totalVisits).toFixed(2) : 0;
+            const cavityFreePercent = totalVisits ? ((cavityFreeCount / totalVisits) * 100).toFixed(1) : 0;
+
+            // Prepare school array for table/chart
+            const schoolArray = Object.entries(schoolData).map(([name, data]) => {
+                const studentCount = data.students.size;
+                const avgDMFT = data.visits ? (data.dmftSum / data.visits).toFixed(2) : 0;
+                const cavityFreePct = data.visits ? ((data.cavityFreeVisits / data.visits) * 100).toFixed(1) : 0;
+                return {
+                    name,
+                    studentCount,
+                    visits: data.visits,
+                    avgDMFT: parseFloat(avgDMFT),
+                    cavityFreePct: parseFloat(cavityFreePct),
+                    extractions: data.extractions,
+                    fillings: data.fillings,
+                    cleanings: data.cleanings,
+                    fluoride: data.fluoride
+                };
+            }).sort((a, b) => b.visits - a.visits);
+
+            return {
+                uniquePatients,
+                totalVisits,
+                avgDMFT: parseFloat(avgDMFT),
+                cavityFreePercent: parseFloat(cavityFreePercent),
+                totalExtractions,
+                totalFillings,
+                totalCleanings,
+                totalFluoride,
+                totalConsultations,
+                schoolArray
+            };
+        }
+
+        // Render UI
+        function renderDashboard(stats) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            // Overall stats cards
+            const overallDiv = document.getElementById('overallStats');
+            overallDiv.innerHTML = `
+                <div class="stat-card"><h3>🧑‍🎓 Patients</h3><div class="value">${stats.uniquePatients}</div><div class="unit">unique students</div></div>
+                <div class="stat-card"><h3>📋 Visits</h3><div class="value">${stats.totalVisits}</div><div class="unit">total examinations</div></div>
+                <div class="stat-card"><h3>📊 Avg DMFT</h3><div class="value">${stats.avgDMFT}</div><div class="unit">per visit</div></div>
+                <div class="stat-card"><h3>🦷 Cavity‑Free</h3><div class="value">${stats.cavityFreePercent}%</div><div class="unit">of visits</div></div>
+            `;
+
+            // Treatment cards
+            const treatmentDiv = document.getElementById('treatmentCards');
+            treatmentDiv.innerHTML = `
+                <div class="treatment-item"><div class="count">${stats.totalExtractions}</div><div class="label">Extractions</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalFillings}</div><div class="label">Fillings</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalCleanings}</div><div class="label">Cleanings</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalFluoride}</div><div class="label">Fluoride</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalConsultations}</div><div class="label">Consultations</div></div>
+            `;
+
+            // School table
+            const tbody = document.getElementById('schoolTableBody');
+            tbody.innerHTML = stats.schoolArray.map(s => `
+                <tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td>${s.studentCount}</td>
+                    <td>${s.visits}</td>
+                    <td>${s.avgDMFT.toFixed(2)}</td>
+                    <td>${s.cavityFreePct.toFixed(1)}%</td>
+                    <td>${s.extractions}</td>
+                    <td>${s.fillings}</td>
+                    <td>${s.cleanings}</td>
+                    <td>${s.fluoride}</td>
+                </tr>
+            `).join('');
+
+            // Bar chart: average DMFT by school
+            const ctx = document.getElementById('schoolChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: stats.schoolArray.map(s => s.name),
+                    datasets: [{
+                        label: 'Average DMFT',
+                        data: stats.schoolArray.map(s => s.avgDMFT),
+                        backgroundColor: '#489fb5',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Average DMFT per School' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'DMFT' } }
+                    }
+                }
+            });
+        }
+
+        // Fetch data from Apps Script
+        async function fetchData() {
+            try {
+                const formData = new FormData();
+                formData.append('action', 'getAll');
+
+                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+                const result = await response.json();
+                if (!result.success || !result.records) throw new Error('Invalid response');
+
+                const stats = processRecords(result.records);
+                renderDashboard(stats);
+            } catch (err) {
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = '❌ Failed to load data: ' + err.message;
+            }
+        }
+
+        // Start
+        window.onload = fetchData;
+    </script>
+</body>
+</html>
