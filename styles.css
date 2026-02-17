@@ -1,4 +1,3 @@
-/* ==================== VARIABLES ==================== */
 :root {
     --primary: #16697a;
     --secondary: #489fb5;
@@ -16,21 +15,18 @@
     --tooth-extract: #ffa62b;
 }
 
-/* ==================== RESET & BASE ==================== */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    -webkit-tap-highlight-color: transparent; /* Removes gray tap highlight on iOS */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
     min-height: 100vh;
-    padding: 10px; /* Reduced padding for small screens */
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+    padding: 10px;
 }
 
 .container {
@@ -42,18 +38,16 @@ body {
     overflow: hidden;
 }
 
-/* ==================== HEADER ==================== */
 .header {
     background: var(--primary);
     color: white;
-    padding: 20px 15px; /* Reduced padding for mobile */
+    padding: 20px;
     text-align: center;
 }
 
 .header h1 {
-    font-size: 1.5em; /* Smaller for mobile */
+    font-size: 1.5em;
     margin-bottom: 5px;
-    line-height: 1.3;
 }
 
 .header h1 small {
@@ -63,16 +57,9 @@ body {
     margin-top: 5px;
 }
 
-.header p {
-    font-size: 0.9em;
-    opacity: 0.9;
-}
-
-/* ==================== CONNECTION STATUS ==================== */
+/* Connection Status */
 #connectionStatus {
     padding: 12px 15px;
-    margin: 0;
-    border-radius: 0;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -99,24 +86,21 @@ body {
     padding: 3px 8px;
     border-radius: 20px;
     font-size: 12px;
-    font-weight: bold;
     margin-left: auto;
-    white-space: nowrap;
 }
 
-/* ==================== TABS ==================== */
+/* Tabs */
 .tabs {
     display: flex;
     background: var(--background);
     border-bottom: 2px solid var(--light);
-    flex-wrap: wrap;
-    overflow-x: auto; /* Allow horizontal scroll on very small screens */
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .tab {
-    flex: 1 0 auto; /* Don't shrink below content */
-    min-width: 120px; /* Minimum width for tabs */
+    flex: 1;
+    min-width: 100px;
     padding: 15px 10px;
     border: none;
     background: none;
@@ -124,13 +108,7 @@ body {
     font-size: 14px;
     font-weight: bold;
     color: var(--primary);
-    transition: all 0.3s;
     border-bottom: 3px solid transparent;
-    -webkit-touch-callout: none; /* Disable callout on long press */
-}
-
-.tab:hover {
-    background: rgba(130, 192, 204, 0.2);
 }
 
 .tab.active {
@@ -138,21 +116,18 @@ body {
     background: white;
 }
 
-.tab span.en {
+.tab span.en, .tab span.tl {
     display: block;
-    font-size: 14px;
 }
 
 .tab span.tl {
-    display: block;
     font-size: 11px;
     opacity: 0.8;
-    margin-top: 2px;
 }
 
-/* ==================== CONTENT AREA ==================== */
+/* Content */
 .content {
-    padding: 15px; /* Reduced padding for mobile */
+    padding: 15px;
     min-height: 500px;
 }
 
@@ -160,28 +135,22 @@ body {
     display: none !important;
 }
 
-/* ==================== SEARCH SECTION ==================== */
+/* Search Section */
 .search-section {
     background: var(--background);
-    padding: 15px; /* Reduced padding */
+    padding: 15px;
     border-radius: 10px;
     margin-bottom: 20px;
 }
 
-.search-section h3 {
-    font-size: 1.1em;
-    margin-bottom: 15px;
-    color: var(--primary);
-}
-
 .search-grid {
     display: grid;
-    grid-template-columns: 1fr; /* Single column on mobile */
+    grid-template-columns: 1fr;
     gap: 12px;
     margin-bottom: 15px;
 }
 
-/* ==================== FORM ELEMENTS ==================== */
+/* Form Elements */
 .form-group {
     margin-bottom: 15px;
 }
@@ -194,71 +163,54 @@ label {
     font-size: 14px;
 }
 
-label .en {
+label .en, label .tl {
     display: block;
 }
 
 label .tl {
-    display: block;
     font-size: 12px;
     opacity: 0.8;
 }
 
 input, select, textarea {
     width: 100%;
-    padding: 12px; /* Larger touch target */
+    padding: 12px;
     border: 2px solid var(--light);
     border-radius: 8px;
-    font-size: 16px; /* Prevents zoom on iOS */
-    transition: all 0.3s;
-    -webkit-appearance: none; /* Removes default iOS styling */
-    appearance: none;
+    font-size: 16px;
     background: white;
-}
-
-/* Custom select arrow for iOS */
-select {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2316697a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    background-size: 16px;
-    padding-right: 40px;
 }
 
 input:focus, select:focus, textarea:focus {
     outline: none;
     border-color: var(--secondary);
-    box-shadow: 0 0 0 3px rgba(72, 159, 181, 0.1);
 }
 
-/* ==================== BUTTONS ==================== */
+select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2316697a' stroke-width='2'><polyline points='6 9 12 15 18 9'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 40px;
+    appearance: none;
+}
+
+/* Buttons */
 .btn {
     background: var(--primary);
     color: white;
-    padding: 14px 20px; /* Larger touch target */
+    padding: 14px 20px;
     border: none;
     border-radius: 8px;
     font-size: 15px;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    width: 100%; /* Full width on mobile */
-    -webkit-touch-callout: none;
-    -webkit-appearance: none;
-}
-
-.btn:hover {
-    background: var(--secondary);
-    transform: translateY(-1px);
-}
-
-.btn:active {
-    transform: translateY(0);
-    opacity: 0.9;
+    width: 100%;
+    margin: 5px 0;
 }
 
 .btn-success {
@@ -276,11 +228,7 @@ input:focus, select:focus, textarea:focus {
     flex-wrap: wrap;
 }
 
-.btn-group .btn {
-    flex: 1 1 auto; /* Allow buttons to share space */
-}
-
-/* ==================== STATUS MESSAGES ==================== */
+/* Status Messages */
 .status {
     padding: 12px;
     border-radius: 8px;
@@ -295,34 +243,18 @@ input:focus, select:focus, textarea:focus {
 .info { background: #d1ecf1; color: #0c5460; }
 .warning { background: #fff3cd; color: #856404; }
 
-/* ==================== STUDENT INFO CARD ==================== */
+/* Cards */
 .student-card {
     background: white;
     border: 2px solid var(--light);
     border-radius: 10px;
-    padding: 15px; /* Reduced padding */
+    padding: 15px;
     margin: 15px 0;
-}
-
-.student-header {
-    display: flex;
-    flex-direction: column; /* Stack on mobile */
-    gap: 10px;
-    margin-bottom: 15px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--light);
-}
-
-.student-name {
-    font-size: 1.3em;
-    color: var(--primary);
-    font-weight: bold;
-    word-break: break-word; /* Prevent overflow */
 }
 
 .info-grid {
     display: grid;
-    grid-template-columns: 1fr; /* Single column on mobile */
+    grid-template-columns: 1fr;
     gap: 10px;
     margin: 10px 0;
 }
@@ -334,22 +266,7 @@ input:focus, select:focus, textarea:focus {
     font-size: 14px;
 }
 
-.info-label {
-    font-weight: bold;
-    color: var(--primary);
-    margin-bottom: 5px;
-    font-size: 13px;
-}
-
-.info-label .en, .info-label .tl {
-    display: inline;
-}
-
-.info-label .en::after {
-    content: " / ";
-}
-
-/* ==================== FDI CHART - COMPACT FOR MOBILE ==================== */
+/* FDI Chart */
 .fdi-chart {
     background: white;
     border: 2px solid var(--light);
@@ -366,25 +283,24 @@ input:focus, select:focus, textarea:focus {
     text-align: center;
 }
 
-/* Compact Legend */
 .legend {
     display: flex;
-    gap: 4px;
+    gap: 5px;
     flex-wrap: wrap;
     justify-content: center;
     margin: 10px 0;
-    padding: 8px 5px;
+    padding: 8px;
     background: var(--background);
     border-radius: 8px;
+    font-size: 11px;
 }
 
 .legend-item {
     display: flex;
     align-items: center;
-    gap: 2px;
-    font-size: 10px;
+    gap: 3px;
     background: white;
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: 12px;
     border: 1px solid var(--light);
 }
@@ -393,14 +309,8 @@ input:focus, select:focus, textarea:focus {
     width: 12px;
     height: 12px;
     border-radius: 3px;
-    flex-shrink: 0;
 }
 
-.legend-item span:not(.legend-color) {
-    white-space: nowrap;
-}
-
-/* Quadrant Grid - 2 columns on all screens */
 .quadrant-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -420,12 +330,8 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 5px;
     color: var(--primary);
     font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
-/* Tooth rows - flex with wrapping */
 .tooth-row {
     display: flex;
     justify-content: center;
@@ -434,7 +340,6 @@ input:focus, select:focus, textarea:focus {
     flex-wrap: wrap;
 }
 
-/* Compact tooth buttons */
 .tooth-btn {
     width: 32px;
     height: 32px;
@@ -442,157 +347,34 @@ input:focus, select:focus, textarea:focus {
     border-radius: 6px;
     background: white;
     cursor: pointer;
-    font-weight: bold;
-    transition: all 0.2s;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    padding: 0;
-    margin: 0;
+    font-weight: bold;
 }
 
 .tooth-btn .number {
     font-size: 9px;
-    line-height: 1;
-    margin-bottom: 1px;
 }
 
 .tooth-btn .status {
     font-size: 12px;
-    line-height: 1;
-    font-weight: bold;
 }
 
-/* Tooth status colors */
-.tooth-btn.normal { 
-    background: var(--tooth-normal); 
-    color: white; 
-    border-color: #5a9aa8;
-}
-.tooth-btn.decayed { 
-    background: var(--tooth-decayed); 
-    color: white; 
-    border-color: #b02a37;
-}
-.tooth-btn.filled { 
-    background: var(--tooth-filled); 
-    color: white; 
-    border-color: #1e7e34;
-}
-.tooth-btn.missing { 
-    background: var(--tooth-missing); 
-    color: white; 
-    border-color: #5a6268;
-}
-.tooth-btn.extract { 
-    background: var(--tooth-extract); 
-    color: white; 
-    border-color: #cc7b00;
-}
+.tooth-btn.normal { background: var(--tooth-normal); color: white; }
+.tooth-btn.decayed { background: var(--tooth-decayed); color: white; }
+.tooth-btn.filled { background: var(--tooth-filled); color: white; }
+.tooth-btn.missing { background: var(--tooth-missing); color: white; }
+.tooth-btn.extract { background: var(--tooth-extract); color: white; }
 
-/* Responsive adjustments for very small screens */
-@media (max-width: 380px) {
-    .tooth-btn {
-        width: 28px;
-        height: 28px;
-    }
-    
-    .tooth-btn .number {
-        font-size: 8px;
-    }
-    
-    .tooth-btn .status {
-        font-size: 10px;
-    }
-    
-    .quadrant-title {
-        font-size: 10px;
-    }
-    
-    .legend-item {
-        font-size: 9px;
-        padding: 2px 4px;
-    }
-}
-
-/* Larger screens - slightly bigger teeth */
-@media (min-width: 768px) {
-    .tooth-btn {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .tooth-btn .number {
-        font-size: 11px;
-    }
-    
-    .tooth-btn .status {
-        font-size: 14px;
-    }
-    
-    .quadrant-title {
-        font-size: 12px;
-    }
-}
-
-/* Fix for iPhone SE and other small devices */
-@supports (-webkit-touch-callout: none) {
-    @media (max-width: 375px) {
-        .quadrant-grid {
-            gap: 5px;
-        }
-        
-        .tooth-btn {
-            width: 26px;
-            height: 26px;
-        }
-        
-        .tooth-btn .number {
-            font-size: 7px;
-        }
-        
-        .tooth-btn .status {
-            font-size: 9px;
-        }
-    }
-}
-/* ==================== LEGEND ==================== */
-.legend {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-    margin: 15px 0;
-    padding: 10px;
-    background: var(--background);
-    border-radius: 8px;
-}
-
-.legend-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-}
-
-.legend-color {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    flex-shrink: 0;
-}
-
-/* ==================== PREVIOUS RECORDS ==================== */
+/* Records List */
 .records-list {
-    max-height: 250px;
+    max-height: 300px;
     overflow-y: auto;
     border: 2px solid var(--light);
     border-radius: 8px;
     padding: 8px;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .record-item {
@@ -601,17 +383,10 @@ input:focus, select:focus, textarea:focus {
     margin: 6px 0;
     border-radius: 5px;
     cursor: pointer;
-    transition: all 0.2s;
-    font-size: 14px;
 }
 
 .record-item:hover {
     background: var(--light);
-}
-
-.record-item:active {
-    opacity: 0.7;
-    transform: scale(0.98);
 }
 
 .record-date {
@@ -620,7 +395,7 @@ input:focus, select:focus, textarea:focus {
     margin-bottom: 3px;
 }
 
-/* ==================== LOADING ==================== */
+/* Loading */
 .loading {
     text-align: center;
     padding: 30px 15px;
@@ -641,7 +416,7 @@ input:focus, select:focus, textarea:focus {
     100% { transform: rotate(360deg); }
 }
 
-/* ==================== TOAST NOTIFICATION ==================== */
+/* Toast */
 .toast {
     position: fixed;
     bottom: 15px;
@@ -654,11 +429,8 @@ input:focus, select:focus, textarea:focus {
     text-align: center;
     animation: slideUp 0.3s;
     z-index: 1000;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    font-size: 14px;
     max-width: 400px;
     margin: 0 auto;
-    pointer-events: none; /* Allow tapping through to buttons */
 }
 
 @keyframes slideUp {
@@ -666,113 +438,19 @@ input:focus, select:focus, textarea:focus {
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* ==================== TABLES & GRIDS ==================== */
-/* Responsive table for larger screens */
+/* Responsive */
 @media (min-width: 480px) {
-    .info-grid {
+    .search-grid, .info-grid {
         grid-template-columns: repeat(2, 1fr);
     }
     
     .btn {
         width: auto;
     }
-    
-    .student-header {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
 }
 
 @media (min-width: 768px) {
-    .content {
-        padding: 25px;
-    }
-    
-    .search-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .quadrant-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .info-grid {
+    .search-grid, .info-grid {
         grid-template-columns: repeat(3, 1fr);
-    }
-    
-    .header h1 {
-        font-size: 2em;
-    }
-    
-    .tooth-btn {
-        width: 50px;
-        height: 50px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .search-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    
-    .btn-group {
-        flex-wrap: nowrap;
-    }
-}
-
-/* ==================== SAFE AREA INSETS FOR NOTCH ==================== */
-@supports (padding: max(0px)) {
-    body {
-        padding-left: max(10px, env(safe-area-inset-left));
-        padding-right: max(10px, env(safe-area-inset-right));
-        padding-top: max(10px, env(safe-area-inset-top));
-        padding-bottom: max(10px, env(safe-area-inset-bottom));
-    }
-    
-    .toast {
-        left: max(15px, env(safe-area-inset-left));
-        right: max(15px, env(safe-area-inset-right));
-        bottom: max(15px, env(safe-area-inset-bottom));
-    }
-}
-
-/* ==================== FIX FOR IPHONE SAFARI ==================== */
-/* Prevents text size adjustment on orientation change */
-html {
-    -webkit-text-size-adjust: 100%;
-}
-
-/* Removes default button styling on iOS */
-button {
-    border: none;
-    background: none;
-    padding: 0;
-    margin: 0;
-    font: inherit;
-    color: inherit;
-    cursor: pointer;
-}
-
-/* Fix for 100vh on mobile browsers */
-@supports (-webkit-touch-callout: none) {
-    body {
-        min-height: -webkit-fill-available;
-    }
-}
-
-/* ==================== PRINT STYLES ==================== */
-@media print {
-    body {
-        background: white;
-        padding: 0;
-    }
-    
-    .container {
-        box-shadow: none;
-    }
-    
-    .btn, .tabs, #connectionStatus, .toast {
-        display: none;
     }
 }
