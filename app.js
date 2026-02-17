@@ -259,10 +259,10 @@ async function cacheAllRecords() {
 // ==================== TEETH FUNCTIONS ====================
 function initTeeth() {
     const allTeeth = [
-        18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
-        38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48,
-        55,54,53,52,51,61,62,63,64,65,
-        75,74,73,72,71,81,82,83,84,85
+        18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
+        38, 37, 36, 35, 34, 33, 32, 31, 41, 42, 43, 44, 45, 46, 47, 48,
+        55, 54, 53, 52, 51, 61, 62, 63, 64, 65,
+        75, 74, 73, 72, 71, 81, 82, 83, 84, 85
     ];
     allTeeth.forEach(t => toothStatus[t] = 'N');
 }
@@ -271,7 +271,7 @@ function createToothButton(tooth) {
     const btn = document.createElement('button');
     btn.className = 'tooth-btn normal';
     btn.innerHTML = `<span class="number">${tooth}</span><span class="status">N</span>`;
-    const statuses = ['N','X','O','M','F'];
+    const statuses = ['N', 'X', 'O', 'M', 'F'];
     let idx = 0;
     btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -286,7 +286,7 @@ function createToothButton(tooth) {
 }
 
 function getStatusClass(s) {
-    return { N:'normal', X:'extract', O:'decayed', M:'missing', F:'filled' }[s] || 'normal';
+    return { N: 'normal', X: 'extract', O: 'decayed', M: 'missing', F: 'filled' }[s] || 'normal';
 }
 
 function updateToothFields() {
@@ -309,17 +309,17 @@ function updateToothFields() {
 }
 
 function populateTeeth() {
-    const quadrants = ['upperRightPerm','upperLeftPerm','lowerLeftPerm','lowerRightPerm',
-                       'upperRightBaby','upperLeftBaby','lowerLeftBaby','lowerRightBaby'];
+    const quadrants = ['upperRightPerm', 'upperLeftPerm', 'lowerLeftPerm', 'lowerRightPerm',
+        'upperRightBaby', 'upperLeftBaby', 'lowerLeftBaby', 'lowerRightBaby'];
     const sets = [
-        [18,17,16,15,14,13,12,11],
-        [21,22,23,24,25,26,27,28],
-        [38,37,36,35,34,33,32,31],
-        [41,42,43,44,45,46,47,48],
-        [55,54,53,52,51],
-        [61,62,63,64,65],
-        [75,74,73,72,71],
-        [81,82,83,84,85]
+        [18, 17, 16, 15, 14, 13, 12, 11],
+        [21, 22, 23, 24, 25, 26, 27, 28],
+        [38, 37, 36, 35, 34, 33, 32, 31],
+        [41, 42, 43, 44, 45, 46, 47, 48],
+        [55, 54, 53, 52, 51],
+        [61, 62, 63, 64, 65],
+        [75, 74, 73, 72, 71],
+        [81, 82, 83, 84, 85]
     ];
     quadrants.forEach((id, i) => {
         const cont = document.getElementById(id);
@@ -340,7 +340,7 @@ function resetTeeth() {
 }
 
 // ==================== SEARCH FUNCTION ====================
-window.searchStudent = async function() {
+window.searchStudent = async function () {
     console.log('=== SEARCH FUNCTION STARTED ===');
     const name = document.getElementById('searchName')?.value.trim() || '';
     const dob = document.getElementById('searchDob')?.value.trim() || '';
@@ -604,7 +604,7 @@ function displayPreviousExams(exams) {
     prevDiv.classList.remove('hidden');
 }
 
-window.loadExam = function(examData) {
+window.loadExam = function (examData) {
     if (confirm('Load this previous exam? Current unsaved data will be lost.')) {
         document.getElementById('oralNotes').value = examData.oralExamNotes || '';
         document.getElementById('toothExtraction').value = examData.toothExtraction || '';
@@ -679,7 +679,7 @@ async function saveStudentToLocal(studentData) {
 }
 
 // ==================== SAVE DENTAL EXAM ====================
-document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
+document.getElementById('dentalExamForm')?.addEventListener('submit', async function (e) {
     e.preventDefault();
     if (!currentStudentId) {
         alert('Please select a student first');
@@ -748,24 +748,22 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
                 const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
                 if (response.ok) {
-                    // Fetch the exam we just added
-                    const getTx = db.transaction('exams', 'readonly');
-                    const getStore = getTx.objectStore('exams');
-                    const savedExam = await getStore.get(examId);
-
-                    if (savedExam) {
-                        savedExam.synced = true;
-                        const updateTx = db.transaction('exams', 'readwrite');
-                        const updateStore = updateTx.objectStore('exams');
-                        await new Promise((res, rej) => {
-                            const req = updateStore.put(savedExam);
-                            req.onsuccess = () => res();
-                            req.onerror = () => rej(req.error);
-                        });
-                        showToast('✅ Saved to Google Sheet and synced!', 'success');
-                    } else {
-                        showToast('⚠️ Exam saved but could not update sync status', 'warning');
-                    }
+                    // Create a fresh object for update – no fetching needed
+                    const updatedExam = {
+                        id: examId,
+                        studentId: currentStudentId,
+                        date: exam.date,
+                        data: fullRecord,
+                        synced: true
+                    };
+                    const updateTx = db.transaction('exams', 'readwrite');
+                    const updateStore = updateTx.objectStore('exams');
+                    await new Promise((res, rej) => {
+                        const req = updateStore.put(updatedExam);
+                        req.onsuccess = () => res();
+                        req.onerror = () => rej(req.error);
+                    });
+                    showToast('✅ Saved to Google Sheet and synced!', 'success');
                 } else {
                     showToast('📱 Saved locally (will sync later)', 'offline');
                 }
@@ -789,9 +787,9 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 });
 
 // ==================== NEW STUDENT ====================
-window.newStudent = function() {
-    ['editName','editSex','editAge','editDob','editAddress','editSchool',
-     'editParent','editContact','editSystemic','editFoodAllergy','editMedAllergy']
+window.newStudent = function () {
+    ['editName', 'editSex', 'editAge', 'editDob', 'editAddress', 'editSchool',
+        'editParent', 'editContact', 'editSystemic', 'editFoodAllergy', 'editMedAllergy']
         .forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -806,7 +804,7 @@ window.newStudent = function() {
 };
 
 // ==================== SAVE STUDENT INFO ====================
-window.saveStudentInfo = async function() {
+window.saveStudentInfo = async function () {
     const student = {
         name: document.getElementById('editName')?.value || '',
         sex: document.getElementById('editSex')?.value || '',
@@ -908,8 +906,8 @@ window.saveStudentInfo = async function() {
 
 // ==================== UI HELPERS ====================
 function switchTab(num) {
-    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===num-1));
-    document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('hidden', i!==num-1));
+    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === num - 1));
+    document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('hidden', i !== num - 1));
 }
 
 function showStatus(id, msg, type) {
@@ -922,12 +920,12 @@ function showStatus(id, msg, type) {
     }
 }
 
-function showToast(msg, type='info') {
+function showToast(msg, type = 'info') {
     const toast = document.getElementById('toast');
     if (!toast) return;
     toast.textContent = msg;
     toast.className = 'toast';
-    toast.style.background = { success:'#28a745', error:'#dc3545', offline:'#ffc107', syncing:'#17a2b8' }[type] || '#333';
+    toast.style.background = { success: '#28a745', error: '#dc3545', offline: '#ffc107', syncing: '#17a2b8' }[type] || '#333';
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
@@ -949,7 +947,7 @@ function updateOnlineStatus() {
     }
 }
 
-window.clearSearch = function() {
+window.clearSearch = function () {
     document.getElementById('searchName').value = '';
     document.getElementById('searchDob').value = '';
     document.getElementById('searchSchool').value = '';
