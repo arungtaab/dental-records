@@ -5,7 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
-    <!-- Use mobile-web-app-capable instead of apple-specific deprecated tag -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Student Dental Records / Tala ng Ngipin ng Mag-aaral</title>
@@ -253,6 +252,12 @@
                 <!-- Dental Exam Form -->
                 <div class="student-card">
                     <h3><span class="en">📝 Dental Examination / Eksaminasyon sa Ngipin</span></h3>
+                    <!-- 🔽 ADDED: Selected Student Display 🔽 -->
+                    <div style="margin-bottom: 15px; padding: 10px; background: var(--background); border-radius: 8px;">
+                        <span class="en">Selected Student:</span>
+                        <span class="tl">Napiling Mag-aaral:</span>
+                        <strong id="selectedStudentName">None / Wala</strong>
+                    </div>
                     <form id="dentalExamForm">
                         <div class="info-grid">
                             <div class="form-group"><label>Tooth Extraction (FDI) / Pagbunot</label><input type="text"
