@@ -1,7 +1,7 @@
 // ==================== CONFIGURATION ====================
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDyDOrWZamuNxeaIZ5CmCjRfcpIakz5PVy4riQBSWdcVrBcYMZAtUrJzgMJkT3TEfo1Q/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxvPwxiSee3iDYQP49VwNA58uz85GcI4xIdcOaNoko8s9M9mMBTK8SvyDC3744HfPpvdg/exec';
 const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 10; // increment to upgrade schema
+const DB_VERSION = 10;
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
@@ -9,7 +9,7 @@ let currentStudent = null;
 let currentStudentId = null;
 let dbInitPromise = null;
 const toothStatus = {};
-const toothCategories = { extraction: [], filling: [] };
+const toothCategories = { extraction: [], filling: [], decayed: [], missing: [] };
 
 // ==================== INDEXEDDB SETUP ====================
 async function openDB() {
@@ -37,13 +37,11 @@ async function openDB() {
             console.log('Upgrading database from', event.oldVersion, 'to', event.newVersion);
             Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
 
-            // Students store
             const studentStore = db.createObjectStore('students', { keyPath: 'id', autoIncrement: true });
             studentStore.createIndex('name', 'name', { unique: false });
             studentStore.createIndex('dob', 'dob', { unique: false });
             studentStore.createIndex('school', 'school', { unique: false });
 
-            // Exams store with synced flag
             const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
             examStore.createIndex('studentId', 'studentId', { unique: false });
             examStore.createIndex('date', 'date', { unique: false });
@@ -77,7 +75,7 @@ function formatDateForDisplay(dateValue) {
     return String(dateValue);
 }
 
-// ==================== SYNC UNSYNCED EXAMS (FIXED) ====================
+// ==================== SYNC UNSYNCED EXAMS ====================
 async function syncUnsyncedExams() {
     if (!navigator.onLine) {
         console.log('Offline, cannot sync');
@@ -86,7 +84,7 @@ async function syncUnsyncedExams() {
     await openDB();
     const tx = db.transaction('exams', 'readonly');
     const store = tx.objectStore('exams');
-    const request = store.getAll(); // get all exams, we'll filter in memory
+    const request = store.getAll();
 
     return new Promise(resolve => {
         request.onsuccess = async () => {
@@ -107,7 +105,6 @@ async function syncUnsyncedExams() {
 
                     const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
                     if (response.ok) {
-                        // Mark as synced
                         const updateTx = db.transaction('exams', 'readwrite');
                         const updateStore = updateTx.objectStore('exams');
                         exam.synced = true;
@@ -130,10 +127,10 @@ async function syncUnsyncedExams() {
 // ==================== TEETH FUNCTIONS ====================
 function initTeeth() {
     const allTeeth = [
-        18, 17, 16, 15, 14, 13, 12, 11, 21, 22, 23, 24, 25, 26, 27, 28,
-        38, 37, 36, 35, 34, 33, 32, 31, 41, 42, 43, 44, 45, 46, 47, 48,
-        55, 54, 53, 52, 51, 61, 62, 63, 64, 65,
-        75, 74, 73, 72, 71, 81, 82, 83, 84, 85
+        18,17,16,15,14,13,12,11,21,22,23,24,25,26,27,28,
+        38,37,36,35,34,33,32,31,41,42,43,44,45,46,47,48,
+        55,54,53,52,51,61,62,63,64,65,
+        75,74,73,72,71,81,82,83,84,85
     ];
     allTeeth.forEach(t => toothStatus[t] = 'N');
 }
@@ -142,7 +139,7 @@ function createToothButton(tooth) {
     const btn = document.createElement('button');
     btn.className = 'tooth-btn normal';
     btn.innerHTML = `<span class="number">${tooth}</span><span class="status">N</span>`;
-    const statuses = ['N', 'X', 'O', 'M', 'F'];
+    const statuses = ['N','X','O','M','F'];
     let idx = 0;
     btn.addEventListener('click', (e) => {
         e.preventDefault();
@@ -157,7 +154,7 @@ function createToothButton(tooth) {
 }
 
 function getStatusClass(s) {
-    return { N: 'normal', X: 'extract', O: 'decayed', M: 'missing', F: 'filled' }[s] || 'normal';
+    return { N:'normal', X:'extract', O:'decayed', M:'missing', F:'filled' }[s] || 'normal';
 }
 
 function updateToothFields() {
@@ -168,35 +165,29 @@ function updateToothFields() {
 
     Object.entries(toothStatus).forEach(([tooth, status]) => {
         if (status === 'X') toothCategories.extraction.push(tooth);
-        if (status === 'F') toothCategories.filling.push(tooth);      // only filled
-        if (status === 'O') toothCategories.decayed.push(tooth);      // only decayed
+        if (status === 'F') toothCategories.filling.push(tooth);
+        if (status === 'O') toothCategories.decayed.push(tooth);
         if (status === 'M') toothCategories.missing.push(tooth);
     });
 
-    // Update the input fields
-    const extractionField = document.getElementById('toothExtraction');
-    const fillingField = document.getElementById('toothFilling');
-    const decayedField = document.getElementById('toothDecayed');
-    const missingField = document.getElementById('toothMissing');
-
-    if (extractionField) extractionField.value = toothCategories.extraction.join(', ');
-    if (fillingField) fillingField.value = toothCategories.filling.join(', ');
-    if (decayedField) decayedField.value = toothCategories.decayed.join(', ');
-    if (missingField) missingField.value = toothCategories.missing.join(', ');
+    document.getElementById('toothExtraction').value = toothCategories.extraction.join(', ');
+    document.getElementById('toothFilling').value = toothCategories.filling.join(', ');
+    document.getElementById('toothDecayed').value = toothCategories.decayed.join(', ');
+    document.getElementById('toothMissing').value = toothCategories.missing.join(', ');
 }
 
 function populateTeeth() {
-    const quadrants = ['upperRightPerm', 'upperLeftPerm', 'lowerLeftPerm', 'lowerRightPerm',
-        'upperRightBaby', 'upperLeftBaby', 'lowerLeftBaby', 'lowerRightBaby'];
+    const quadrants = ['upperRightPerm','upperLeftPerm','lowerLeftPerm','lowerRightPerm',
+                       'upperRightBaby','upperLeftBaby','lowerLeftBaby','lowerRightBaby'];
     const sets = [
-        [18, 17, 16, 15, 14, 13, 12, 11],
-        [21, 22, 23, 24, 25, 26, 27, 28],
-        [38, 37, 36, 35, 34, 33, 32, 31],
-        [41, 42, 43, 44, 45, 46, 47, 48],
-        [55, 54, 53, 52, 51],
-        [61, 62, 63, 64, 65],
-        [75, 74, 73, 72, 71],
-        [81, 82, 83, 84, 85]
+        [18,17,16,15,14,13,12,11],
+        [21,22,23,24,25,26,27,28],
+        [38,37,36,35,34,33,32,31],
+        [41,42,43,44,45,46,47,48],
+        [55,54,53,52,51],
+        [61,62,63,64,65],
+        [75,74,73,72,71],
+        [81,82,83,84,85]
     ];
     quadrants.forEach((id, i) => {
         const cont = document.getElementById(id);
@@ -216,8 +207,8 @@ function resetTeeth() {
     updateToothFields();
 }
 
-// ==================== SEARCH FUNCTION (with online cache and offline fix) ====================
-window.searchStudent = async function () {
+// ==================== SEARCH FUNCTION ====================
+window.searchStudent = async function() {
     console.log('=== SEARCH FUNCTION STARTED ===');
     const name = document.getElementById('searchName')?.value.trim() || '';
     const dob = document.getElementById('searchDob')?.value.trim() || '';
@@ -239,7 +230,7 @@ window.searchStudent = async function () {
     try {
         await openDB();
 
-        // Try online search first if online
+        // Online search
         if (navigator.onLine) {
             try {
                 const formData = new FormData();
@@ -257,7 +248,6 @@ window.searchStudent = async function () {
                     const sortedRecords = result.records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = sortedRecords[0];
 
-                    // Format date for local storage
                     const formattedDob = formatDateForDisplay(latestRecord.dob);
 
                     const studentData = {
@@ -415,19 +405,29 @@ function displayConsolidatedInfo(record) {
     setValue('editFoodAllergy', record.allergiesFood);
     setValue('editMedAllergy', record.allergiesMedicines);
 
+    setValue('oralNotes', record.oralExamNotes);
     setValue('toothExtraction', record.toothExtraction);
     setValue('toothFilling', record.toothFilling);
     setValue('toothDecayed', record.toothDecayed);
     setValue('toothMissing', record.toothMissing);
+    setValue('cleaningNotes', record.cleaningNotes);
     setValue('fluoride', record.fluoride);
     setValue('dentalConsult', record.dentalConsultations);
     setValue('severeCavities', record.severeCavities);
-    setValue('oralNotes', record.oralExamNotes);
-    setValue('cleaningNotes', record.cleaningNotes);
+    setValue('dentalProcedures', record.dentalProcedures);
     setValue('remarks', record.remarks);
 
+    // Restore tooth chart
     if (record.toothData) {
-        Object.assign(toothStatus, record.toothData);
+        let toothData = record.toothData;
+        if (typeof toothData === 'string') {
+            try {
+                toothData = JSON.parse(toothData);
+            } catch (e) {
+                toothData = {};
+            }
+        }
+        Object.assign(toothStatus, toothData);
         document.querySelectorAll('.tooth-btn').forEach(btn => {
             const tooth = btn.querySelector('.number')?.textContent;
             if (tooth && toothStatus[tooth]) {
@@ -441,12 +441,9 @@ function displayConsolidatedInfo(record) {
         resetTeeth();
     }
 
-    const studentInfo = document.getElementById('studentInfo');
-    const studentForm = document.getElementById('studentForm');
-    const selectedName = document.getElementById('selectedStudentName');
-    if (studentInfo) studentInfo.classList.remove('hidden');
-    if (studentForm) studentForm.classList.remove('hidden');
-    if (selectedName) selectedName.textContent = record.name || record.completeName || 'Unknown';
+    document.getElementById('studentInfo')?.classList.remove('hidden');
+    document.getElementById('studentForm')?.classList.remove('hidden');
+    document.getElementById('selectedStudentName').textContent = record.name || record.completeName || 'Unknown';
 }
 
 function displayPreviousExams(exams) {
@@ -461,26 +458,37 @@ function displayPreviousExams(exams) {
                 <div class="record-date">${new Date(exam.date).toLocaleDateString()}</div>
                 <div>Extraction: ${(exam.data || exam).toothExtraction || '—'}</div>
                 <div>Filling: ${(exam.data || exam).toothFilling || '—'}</div>
+                <div>Decayed: ${(exam.data || exam).toothDecayed || '—'}</div>
+                <div>Missing: ${(exam.data || exam).toothMissing || '—'}</div>
             </div>
         `;
     }).join('');
     prevDiv.classList.remove('hidden');
 }
 
-window.loadExam = function (examData) {
+window.loadExam = function(examData) {
     if (confirm('Load this previous exam? Current unsaved data will be lost.')) {
+        document.getElementById('oralNotes').value = examData.oralExamNotes || '';
         document.getElementById('toothExtraction').value = examData.toothExtraction || '';
         document.getElementById('toothFilling').value = examData.toothFilling || '';
-        document.getElementById('toothCleaning').value = examData.cleaning || '';
+        document.getElementById('toothDecayed').value = examData.toothDecayed || '';
+        document.getElementById('toothMissing').value = examData.toothMissing || '';
+        document.getElementById('cleaningNotes').value = examData.cleaningNotes || '';
         document.getElementById('fluoride').value = examData.fluoride || '';
         document.getElementById('dentalConsult').value = examData.dentalConsultations || '';
         document.getElementById('severeCavities').value = examData.severeCavities || '';
-        document.getElementById('oralNotes').value = examData.oralExamNotes || '';
-        document.getElementById('cleaningNotes').value = examData.cleaningNotes || '';
         document.getElementById('remarks').value = examData.remarks || '';
 
         if (examData.toothData) {
-            Object.assign(toothStatus, examData.toothData);
+            let toothData = examData.toothData;
+            if (typeof toothData === 'string') {
+                try {
+                    toothData = JSON.parse(toothData);
+                } catch (e) {
+                    toothData = {};
+                }
+            }
+            Object.assign(toothStatus, toothData);
             document.querySelectorAll('.tooth-btn').forEach(btn => {
                 const tooth = btn.querySelector('.number')?.textContent;
                 if (tooth) {
@@ -490,8 +498,9 @@ window.loadExam = function (examData) {
                 }
             });
             updateToothFields();
+        } else {
+            resetTeeth();
         }
-
         showToast('Loaded previous exam', 'success');
     }
 };
@@ -524,7 +533,7 @@ async function saveStudentToLocal(studentData) {
 }
 
 // ==================== SAVE DENTAL EXAM ====================
-document.getElementById('dentalExamForm')?.addEventListener('submit', async function (e) {
+document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!currentStudentId) {
         alert('Please select a student first');
@@ -534,6 +543,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
     const formattedDob = formatDateForDisplay(currentStudent.dob);
 
     const fullRecord = {
+        // Static info
         completeName: currentStudent.name || '',
         sex: currentStudent.sex || '',
         age: currentStudent.age || '',
@@ -546,19 +556,23 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         allergiesFood: currentStudent.allergiesFood || '',
         allergiesMedicines: currentStudent.allergiesMedicines || '',
 
+        // Dental exam fields
+        oralExamNotes: document.getElementById('oralNotes')?.value || '',
         toothExtraction: document.getElementById('toothExtraction')?.value || '',
         toothFilling: document.getElementById('toothFilling')?.value || '',
         toothDecayed: document.getElementById('toothDecayed')?.value || '',
         toothMissing: document.getElementById('toothMissing')?.value || '',
+        cleaningNotes: document.getElementById('cleaningNotes')?.value || '',
         fluoride: document.getElementById('fluoride')?.value || '',
         dentalConsultations: document.getElementById('dentalConsult')?.value || '',
         severeCavities: document.getElementById('severeCavities')?.value || '',
-        oralExamNotes: document.getElementById('oralNotes')?.value || '',
-        cleaningNotes: document.getElementById('cleaningNotes')?.value || '',
+        dentalProcedures: '',
         remarks: document.getElementById('remarks')?.value || '',
         extractionNotes: document.getElementById('extractionNotes')?.value || '',
         fillingNotes: document.getElementById('fillingNotes')?.value || '',
 
+        // Store full tooth chart as JSON
+        toothData: JSON.stringify(toothStatus)
     };
 
     try {
@@ -573,7 +587,6 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
         const tx = db.transaction('exams', 'readwrite');
         const store = tx.objectStore('exams');
-        // After adding the exam locally
         const examId = await store.add(exam);
         console.log('Exam saved locally with ID', examId);
 
@@ -585,15 +598,21 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
                 const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
                 if (response.ok) {
-                    // Start a NEW transaction to update the synced flag
-                    const updateTx = db.transaction('exams', 'readwrite');
-                    const updateStore = updateTx.objectStore('exams');
-                    exam.synced = true;
-                    exam.id = examId;
-                    await updateStore.put(exam);
-                    showToast('✅ Saved to Google Sheet and synced!', 'success');
+                    // Fetch the exam we just added
+                    const getTx = db.transaction('exams', 'readonly');
+                    const getStore = getTx.objectStore('exams');
+                    const savedExam = await getStore.get(examId);
+
+                    if (savedExam) {
+                        savedExam.synced = true;
+                        const updateTx = db.transaction('exams', 'readwrite');
+                        const updateStore = updateTx.objectStore('exams');
+                        await updateStore.put(savedExam);
+                        showToast('✅ Saved to Google Sheet and synced!', 'success');
+                    } else {
+                        showToast('⚠️ Exam saved but could not update sync status', 'warning');
+                    }
                 } else {
-                    // Online save failed – exam remains unsynced (already saved locally)
                     showToast('📱 Saved locally (will sync later)', 'offline');
                 }
             } catch (error) {
@@ -604,13 +623,11 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
             showToast('📱 Saved offline (will sync when online)', 'offline');
         }
 
+        // Reset form and go back to search mode
         e.target.reset();
         resetTeeth();
+        clearSearch(); // This resets the whole UI to search mode
 
-        const exams = await getExamsForStudent(currentStudentId);
-        if (exams.length > 1) {
-            displayPreviousExams(exams.slice(1));
-        }
     } catch (error) {
         console.error('Save error:', error);
         showToast('❌ Save failed', 'error');
@@ -618,9 +635,9 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 });
 
 // ==================== NEW STUDENT ====================
-window.newStudent = function () {
-    ['editName', 'editSex', 'editAge', 'editDob', 'editAddress', 'editSchool',
-        'editParent', 'editContact', 'editSystemic', 'editFoodAllergy', 'editMedAllergy']
+window.newStudent = function() {
+    ['editName','editSex','editAge','editDob','editAddress','editSchool',
+     'editParent','editContact','editSystemic','editFoodAllergy','editMedAllergy']
         .forEach(id => {
             const el = document.getElementById(id);
             if (el) el.value = '';
@@ -634,7 +651,7 @@ window.newStudent = function () {
 };
 
 // ==================== SAVE STUDENT INFO ====================
-window.saveStudentInfo = async function () {
+window.saveStudentInfo = async function() {
     const student = {
         name: document.getElementById('editName')?.value || '',
         sex: document.getElementById('editSex')?.value || '',
@@ -657,7 +674,7 @@ window.saveStudentInfo = async function () {
     const tx = db.transaction('students', 'readwrite');
     const store = tx.objectStore('students');
 
-    const wasNew = !currentStudentId; // true if this is a new student
+    const wasNew = !currentStudentId;
 
     if (currentStudentId) {
         student.id = currentStudentId;
@@ -672,9 +689,8 @@ window.saveStudentInfo = async function () {
     displayConsolidatedInfo(student);
     showToast('✅ Student saved', 'success');
 
-    // If this is a new student, create an empty exam record
+    // Create empty exam for new students
     if (wasNew) {
-        // Build an empty exam data object with all dental fields empty
         const emptyExamData = {
             completeName: student.name,
             sex: student.sex,
@@ -687,7 +703,6 @@ window.saveStudentInfo = async function () {
             systemicConditions: student.systemicConditions,
             allergiesFood: student.allergiesFood,
             allergiesMedicines: student.allergiesMedicines,
-            // Dental fields (all empty)
             oralExamNotes: '',
             toothExtraction: '',
             toothFilling: '',
@@ -701,7 +716,6 @@ window.saveStudentInfo = async function () {
             remarks: '',
             extractionNotes: '',
             fillingNotes: '',
-            // We also store the empty tooth chart as JSON (optional but good for consistency)
             toothData: JSON.stringify({})
         };
 
@@ -712,15 +726,11 @@ window.saveStudentInfo = async function () {
             synced: false
         };
 
-        // Save exam locally
         const examTx = db.transaction('exams', 'readwrite');
         const examStore = examTx.objectStore('exams');
         await examStore.add(emptyExam);
-
-        // Refresh previous exams list
         loadPreviousExams(student.id);
 
-        // Sync if online
         if (navigator.onLine) {
             syncUnsyncedExams();
         }
@@ -728,10 +738,11 @@ window.saveStudentInfo = async function () {
         showToast('📄 Initial exam record created', 'info');
     }
 };
+
 // ==================== UI HELPERS ====================
 function switchTab(num) {
-    document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === num - 1));
-    document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('hidden', i !== num - 1));
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===num-1));
+    document.querySelectorAll('.tab-content').forEach((c,i) => c.classList.toggle('hidden', i!==num-1));
 }
 
 function showStatus(id, msg, type) {
@@ -744,12 +755,12 @@ function showStatus(id, msg, type) {
     }
 }
 
-function showToast(msg, type = 'info') {
+function showToast(msg, type='info') {
     const toast = document.getElementById('toast');
     if (!toast) return;
     toast.textContent = msg;
     toast.className = 'toast';
-    toast.style.background = { success: '#28a745', error: '#dc3545', offline: '#ffc107', syncing: '#17a2b8' }[type] || '#333';
+    toast.style.background = { success:'#28a745', error:'#dc3545', offline:'#ffc107', syncing:'#17a2b8' }[type] || '#333';
     toast.classList.remove('hidden');
     setTimeout(() => toast.classList.add('hidden'), 3000);
 }
@@ -762,7 +773,7 @@ function updateOnlineStatus() {
         if (statusDiv) statusDiv.className = 'status online';
         if (icon) icon.textContent = '✅';
         if (text) text.textContent = 'You are online / Online ka';
-        syncUnsyncedExams(); // auto-sync when online
+        syncUnsyncedExams();
     } else {
         if (statusDiv) statusDiv.className = 'status offline';
         if (icon) icon.textContent = '📴';
@@ -770,7 +781,7 @@ function updateOnlineStatus() {
     }
 }
 
-window.clearSearch = function () {
+window.clearSearch = function() {
     document.getElementById('searchName').value = '';
     document.getElementById('searchDob').value = '';
     document.getElementById('searchSchool').value = '';
