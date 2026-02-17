@@ -266,51 +266,57 @@ select {
     font-size: 14px;
 }
 
-/* FDI Chart */
+//* FDI Chart - Fully Responsive */
 .fdi-chart {
     background: white;
     border: 2px solid var(--light);
     border-radius: 10px;
     padding: 12px;
     margin: 15px 0;
+    width: 100%;
+    overflow-x: auto; /* Allow horizontal scroll only if absolutely necessary */
 }
 
 .chart-title {
-    font-size: 1.1em;
+    font-size: clamp(1rem, 4vw, 1.2rem);
     font-weight: bold;
     color: var(--primary);
     margin-bottom: 10px;
     text-align: center;
 }
 
+/* Legend - wraps naturally */
 .legend {
     display: flex;
-    gap: 5px;
     flex-wrap: wrap;
+    gap: 6px;
     justify-content: center;
     margin: 10px 0;
-    padding: 8px;
+    padding: 10px;
     background: var(--background);
     border-radius: 8px;
-    font-size: 11px;
 }
 
 .legend-item {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     background: white;
-    padding: 3px 8px;
-    border-radius: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
     border: 1px solid var(--light);
+    font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+    white-space: nowrap;
 }
 
 .legend-color {
-    width: 12px;
-    height: 12px;
+    width: clamp(10px, 2.5vw, 14px);
+    height: clamp(10px, 2.5vw, 14px);
     border-radius: 3px;
+    flex-shrink: 0;
 }
 
+/* Quadrant grid: always 2 columns, but buttons shrink */
 .quadrant-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -320,29 +326,34 @@ select {
 
 .quadrant {
     background: var(--background);
-    padding: 8px 5px;
+    padding: 8px 4px;
     border-radius: 8px;
+    min-width: 0; /* Prevent grid overflow */
 }
 
 .quadrant-title {
     font-weight: bold;
     text-align: center;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
     color: var(--primary);
-    font-size: 11px;
+    font-size: clamp(0.65rem, 2vw, 0.85rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .tooth-row {
     display: flex;
+    flex-wrap: wrap;
     justify-content: center;
     gap: 3px;
     margin: 3px 0;
-    flex-wrap: wrap;
 }
 
+/* Responsive tooth button using clamp */
 .tooth-btn {
-    width: 32px;
-    height: 32px;
+    width: clamp(28px, 7vw, 38px);
+    height: clamp(28px, 7vw, 38px);
     border: 1.5px solid var(--primary);
     border-radius: 6px;
     background: white;
@@ -352,22 +363,61 @@ select {
     align-items: center;
     justify-content: center;
     font-weight: bold;
+    transition: all 0.2s;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    flex-shrink: 0; /* Prevent shrinking below width */
 }
 
 .tooth-btn .number {
-    font-size: 9px;
+    font-size: clamp(0.5rem, 1.8vw, 0.7rem);
+    line-height: 1.2;
 }
 
 .tooth-btn .status {
-    font-size: 12px;
+    font-size: clamp(0.7rem, 2.2vw, 0.9rem);
+    line-height: 1.2;
+    font-weight: bold;
 }
 
+/* Status colors */
 .tooth-btn.normal { background: var(--tooth-normal); color: white; }
 .tooth-btn.decayed { background: var(--tooth-decayed); color: white; }
 .tooth-btn.filled { background: var(--tooth-filled); color: white; }
 .tooth-btn.missing { background: var(--tooth-missing); color: white; }
 .tooth-btn.extract { background: var(--tooth-extract); color: white; }
 
+/* Extra small screens (below 360px) – maybe single column for quadrants? */
+@media (max-width: 360px) {
+    .quadrant-grid {
+        grid-template-columns: 1fr; /* Stack quadrants */
+        gap: 10px;
+    }
+    
+    .tooth-btn {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .legend-item {
+        padding: 3px 8px;
+        font-size: 0.7rem;
+    }
+}
+
+/* For very narrow phones, allow horizontal scroll if needed */
+@media (max-width: 280px) {
+    .fdi-chart {
+        padding: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .quadrant-grid {
+        min-width: 260px; /* Ensure content is scrollable */
+    }
+}
 /* Records List */
 .records-list {
     max-height: 300px;
