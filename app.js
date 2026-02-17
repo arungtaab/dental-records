@@ -1,13 +1,14 @@
 // ==================== CONFIGURATION ====================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDyDOrWZamuNxeaIZ5CmCjRfcpIakz5PVy4riQBSWdcVrBcYMZAtUrJzgMJkT3TEfo1Q/exec';
 const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 10;
+const DB_VERSION = 12; // increment to ensure fresh schema
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
 let currentStudent = null;
 let currentStudentId = null;
 let dbInitPromise = null;
+let isCaching = false; // prevent concurrent cache runs
 const toothStatus = {};
 const toothCategories = { extraction: [], filling: [], decayed: [], missing: [] };
 
@@ -77,51 +78,173 @@ function formatDateForDisplay(dateValue) {
 
 // ==================== SYNC UNSYNCED EXAMS ====================
 async function syncUnsyncedExams() {
-    if (!navigator.onLine) {
-        console.log('Offline, cannot sync');
-        return;
-    }
+    if (!navigator.onLine) return;
     await openDB();
     const tx = db.transaction('exams', 'readonly');
     const store = tx.objectStore('exams');
-    const request = store.getAll();
+    const allExams = await new Promise((res, rej) => {
+        const req = store.getAll();
+        req.onsuccess = () => res(req.result);
+        req.onerror = () => rej(req.error);
+    });
+    const unsynced = allExams.filter(e => !e.synced);
+    if (!unsynced.length) return;
 
-    return new Promise(resolve => {
-        request.onsuccess = async () => {
-            const allExams = request.result;
-            const unsynced = allExams.filter(exam => !exam.synced);
-            if (unsynced.length === 0) {
-                console.log('No unsynced exams');
-                resolve();
-                return;
+    for (const exam of unsynced) {
+        try {
+            const formData = new FormData();
+            formData.append('action', 'save');
+            formData.append('record', JSON.stringify(exam.data));
+
+            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+            if (response.ok) {
+                exam.synced = true;
+                const updateTx = db.transaction('exams', 'readwrite');
+                const updateStore = updateTx.objectStore('exams');
+                await new Promise((res, rej) => {
+                    const req = updateStore.put(exam);
+                    req.onsuccess = () => res();
+                    req.onerror = () => rej(req.error);
+                });
             }
-            console.log(`Syncing ${unsynced.length} unsynced exams...`);
-            let successCount = 0;
-            for (const exam of unsynced) {
-                try {
-                    const formData = new FormData();
-                    formData.append('action', 'save');
-                    formData.append('record', JSON.stringify(exam.data));
+        } catch (e) {
+            console.error('Sync error for exam', exam.id, e);
+        }
+    }
+}
 
-                    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-                    if (response.ok) {
-                        const updateTx = db.transaction('exams', 'readwrite');
-                        const updateStore = updateTx.objectStore('exams');
-                        exam.synced = true;
-                        await updateStore.put(exam);
-                        successCount++;
-                    } else {
-                        console.error('Sync failed for exam', exam.id, await response.text());
-                    }
-                } catch (e) {
-                    console.error('Sync error for exam', exam.id, e);
+// ==================== CACHE ALL RECORDS FROM SERVER ====================
+async function cacheAllRecords() {
+    if (!navigator.onLine) {
+        console.log('Offline, skipping cache');
+        return;
+    }
+    if (isCaching) {
+        console.log('Cache already in progress');
+        return;
+    }
+    isCaching = true;
+    console.log('Caching all records from server...');
+    try {
+        const formData = new FormData();
+        formData.append('action', 'getAll');
+        const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+        const result = await response.json();
+        if (!result.success || !Array.isArray(result.records)) {
+            throw new Error('Invalid response from server');
+        }
+        console.log(`Received ${result.records.length} records from server`);
+
+        await openDB();
+
+        // Group records by student (name + dob + school)
+        const studentMap = new Map(); // key -> studentData
+        const examMap = new Map();    // studentKey -> array of exam records
+
+        for (const row of result.records) {
+            const name = row['Complete Name of Pupil / Kumpletong Ngalan ng Mag-aaral:'] || '';
+            const dobRaw = row['Date of Birth / Petsa ng kapanganakan'] || '';
+            const school = row['School / Paaralan'] || 'Unknown';
+            if (!name || !dobRaw) continue;
+
+            const studentKey = `${name}|${dobRaw}|${school}`;
+
+            // Prepare student data (use first occurrence as baseline)
+            if (!studentMap.has(studentKey)) {
+                studentMap.set(studentKey, {
+                    name,
+                    sex: row['Sex / Kasarian'] || '',
+                    age: row['Age / Edad'] || '',
+                    dob: formatDateForDisplay(dobRaw),
+                    address: row['Address / Tirahan'] || '',
+                    school,
+                    parentName: row['Name of Parent/Guardian / Ngalan ng Magulang/Tagapag-alaga:'] || '',
+                    contactNumber: row['Contact Number / Numero ng Telepono:'] || '',
+                    systemicConditions: row['Systemic Conditions / Sistemikong karamdaman'] || '',
+                    allergiesFood: row['Allergies (Food & Environment) / Allergy (Pagkain at Kapaligiran)'] || '',
+                    allergiesMedicines: row['Allergies (Medicines) / Allergy (Mga Gamot)'] || ''
+                });
+            }
+
+            // Collect exam data
+            if (!examMap.has(studentKey)) examMap.set(studentKey, []);
+            examMap.get(studentKey).push({
+                date: row['Timestamp'] || new Date().toISOString(),
+                data: row,
+                synced: true
+            });
+        }
+
+        // Save students and their exams
+        const studentTx = db.transaction('students', 'readwrite');
+        const studentStore = studentTx.objectStore('students');
+        const examTx = db.transaction('exams', 'readwrite');
+        const examStore = examTx.objectStore('exams');
+
+        for (const [studentKey, studentData] of studentMap.entries()) {
+            // Check if student exists
+            const index = studentStore.index('name'); // we need to search by name+dob+school
+            const allStudents = await new Promise((res, rej) => {
+                const req = studentStore.getAll();
+                req.onsuccess = () => res(req.result);
+                req.onerror = () => rej(req.error);
+            });
+            const existing = allStudents.find(s =>
+                s.name === studentData.name &&
+                s.dob === studentData.dob &&
+                s.school === studentData.school
+            );
+
+            let studentId;
+            if (existing) {
+                studentData.id = existing.id;
+                await new Promise((res, rej) => {
+                    const req = studentStore.put(studentData);
+                    req.onsuccess = () => res();
+                    req.onerror = () => rej(req.error);
+                });
+                studentId = existing.id;
+            } else {
+                studentId = await new Promise((res, rej) => {
+                    const req = studentStore.add(studentData);
+                    req.onsuccess = () => res(req.result);
+                    req.onerror = () => rej(req.error);
+                });
+            }
+
+            // Save exams for this student
+            const exams = examMap.get(studentKey) || [];
+            for (const exam of exams) {
+                // Check if exam already exists (by date)
+                const index = examStore.index('date');
+                const existingExams = await new Promise((res, rej) => {
+                    const req = index.getAll(exam.date);
+                    req.onsuccess = () => res(req.result);
+                    req.onerror = () => rej(req.error);
+                });
+                const alreadyExists = existingExams.some(e => e.studentId === studentId && e.date === exam.date);
+                if (!alreadyExists) {
+                    const examRecord = {
+                        studentId,
+                        date: exam.date,
+                        data: exam.data,
+                        synced: true
+                    };
+                    await new Promise((res, rej) => {
+                        const req = examStore.add(examRecord);
+                        req.onsuccess = () => res();
+                        req.onerror = () => rej(req.error);
+                    });
                 }
             }
-            showToast(`✅ Synced ${successCount} of ${unsynced.length} exams`, successCount ? 'success' : 'error');
-            resolve();
-        };
-        request.onerror = () => resolve();
-    });
+        }
+
+        console.log('Caching complete');
+    } catch (error) {
+        console.error('Cache error:', error);
+    } finally {
+        isCaching = false;
+    }
 }
 
 // ==================== TEETH FUNCTIONS ====================
@@ -230,7 +353,7 @@ window.searchStudent = async function() {
     try {
         await openDB();
 
-        // Online search
+        // First, try online search (if online) to get latest
         if (navigator.onLine) {
             try {
                 const formData = new FormData();
@@ -281,7 +404,11 @@ window.searchStudent = async function() {
                                 data: examData,
                                 synced: true
                             };
-                            await examStore.add(exam);
+                            await new Promise((res, rej) => {
+                                const req = examStore.add(exam);
+                                req.onsuccess = () => res();
+                                req.onerror = () => rej(req.error);
+                            });
                         }
                     }
 
@@ -441,11 +568,8 @@ function displayConsolidatedInfo(record) {
         resetTeeth();
     }
 
-    // Ensure selectedStudentName exists
     const selectedNameEl = document.getElementById('selectedStudentName');
-    if (selectedNameEl) {
-        selectedNameEl.textContent = record.name || record.completeName || 'Unknown';
-    }
+    if (selectedNameEl) selectedNameEl.textContent = record.name || record.completeName || 'Unknown';
 
     document.getElementById('studentInfo')?.classList.remove('hidden');
     document.getElementById('studentForm')?.classList.remove('hidden');
@@ -528,7 +652,11 @@ async function saveStudentToLocal(studentData) {
 
     if (existing) {
         studentData.id = existing.id;
-        await store.put(studentData);
+        await new Promise((res, rej) => {
+            const req = store.put(studentData);
+            req.onsuccess = () => res();
+            req.onerror = () => rej(req.error);
+        });
         return studentData;
     } else {
         const id = await new Promise((res, rej) => {
@@ -620,7 +748,11 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
                         savedExam.synced = true;
                         const updateTx = db.transaction('exams', 'readwrite');
                         const updateStore = updateTx.objectStore('exams');
-                        await updateStore.put(savedExam);
+                        await new Promise((res, rej) => {
+                            const req = updateStore.put(savedExam);
+                            req.onsuccess = () => res();
+                            req.onerror = () => rej(req.error);
+                        });
                         showToast('✅ Saved to Google Sheet and synced!', 'success');
                     } else {
                         showToast('⚠️ Exam saved but could not update sync status', 'warning');
@@ -639,7 +771,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         // Reset form and go back to search mode
         e.target.reset();
         resetTeeth();
-        clearSearch(); // This resets the whole UI to search mode
+        clearSearch();
 
     } catch (error) {
         console.error('Save error:', error);
@@ -692,7 +824,11 @@ window.saveStudentInfo = async function() {
 
     if (currentStudentId) {
         student.id = currentStudentId;
-        await store.put(student);
+        await new Promise((res, rej) => {
+            const req = store.put(student);
+            req.onsuccess = () => res();
+            req.onerror = () => rej(req.error);
+        });
         currentStudent = student;
     } else {
         const id = await new Promise((res, rej) => {
@@ -746,7 +882,11 @@ window.saveStudentInfo = async function() {
 
         const examTx = db.transaction('exams', 'readwrite');
         const examStore = examTx.objectStore('exams');
-        await examStore.add(emptyExam);
+        await new Promise((res, rej) => {
+            const req = examStore.add(emptyExam);
+            req.onsuccess = () => res();
+            req.onerror = () => rej(req.error);
+        });
         loadPreviousExams(student.id);
 
         if (navigator.onLine) {
@@ -792,6 +932,7 @@ function updateOnlineStatus() {
         if (icon) icon.textContent = '✅';
         if (text) text.textContent = 'You are online / Online ka';
         syncUnsyncedExams();
+        cacheAllRecords(); // cache all records when online
     } else {
         if (statusDiv) statusDiv.className = 'status offline';
         if (icon) icon.textContent = '📴';
@@ -821,6 +962,10 @@ window.addEventListener('load', async () => {
     updateOnlineStatus();
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
+    // Initial cache if online
+    if (navigator.onLine) {
+        setTimeout(() => cacheAllRecords(), 1000); // slight delay to let UI settle
+    }
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').catch(e => console.log('SW error', e));
     }
