@@ -389,41 +389,51 @@ window.searchStudent = async function() {
     }
 };
 
-// Helper function to display consolidated info
+// Helper function to display consolidated info (with null checks)
 function displayConsolidatedInfo(record) {
+    // Safely set text content
+    const setText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val || '';
+    };
+    const setValue = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.value = val || '';
+    };
+
     // Display student info
-    document.getElementById('displayName').textContent = record.name || record.completeName || '';
-    document.getElementById('displayDob').textContent = record.dob || '';
-    document.getElementById('displaySchool').textContent = record.school || '';
-    document.getElementById('displayParent').textContent = record.parentName || '';
-    document.getElementById('displayContact').textContent = record.contactNumber || '';
-    document.getElementById('displaySystemic').textContent = record.systemicConditions || 'None';
-    document.getElementById('displayFoodAllergy').textContent = record.allergiesFood || 'None';
-    document.getElementById('displayMedAllergy').textContent = record.allergiesMedicines || 'None';
+    setText('displayName', record.name || record.completeName);
+    setText('displayDob', record.dob);
+    setText('displaySchool', record.school);
+    setText('displayParent', record.parentName);
+    setText('displayContact', record.contactNumber);
+    setText('displaySystemic', record.systemicConditions || 'None');
+    setText('displayFoodAllergy', record.allergiesFood || 'None');
+    setText('displayMedAllergy', record.allergiesMedicines || 'None');
 
     // Fill edit form
-    document.getElementById('editName').value = record.name || record.completeName || '';
-    document.getElementById('editSex').value = record.sex || '';
-    document.getElementById('editAge').value = record.age || '';
-    document.getElementById('editDob').value = record.dob || '';
-    document.getElementById('editAddress').value = record.address || '';
-    document.getElementById('editSchool').value = record.school || '';
-    document.getElementById('editParent').value = record.parentName || '';
-    document.getElementById('editContact').value = record.contactNumber || '';
-    document.getElementById('editSystemic').value = record.systemicConditions || '';
-    document.getElementById('editFoodAllergy').value = record.allergiesFood || '';
-    document.getElementById('editMedAllergy').value = record.allergiesMedicines || '';
+    setValue('editName', record.name || record.completeName);
+    setValue('editSex', record.sex);
+    setValue('editAge', record.age);
+    setValue('editDob', record.dob);
+    setValue('editAddress', record.address);
+    setValue('editSchool', record.school);
+    setValue('editParent', record.parentName);
+    setValue('editContact', record.contactNumber);
+    setValue('editSystemic', record.systemicConditions);
+    setValue('editFoodAllergy', record.allergiesFood);
+    setValue('editMedAllergy', record.allergiesMedicines);
 
-    // Fill dental exam form with latest exam data
-    document.getElementById('toothExtraction').value = record.toothExtraction || '';
-    document.getElementById('toothFilling').value = record.toothFilling || '';
-    document.getElementById('toothCleaning').value = record.cleaning || '';
-    document.getElementById('fluoride').value = record.fluoride || '';
-    document.getElementById('dentalConsult').value = record.dentalConsultations || '';
-    document.getElementById('severeCavities').value = record.severeCavities || '';
-    document.getElementById('oralNotes').value = record.oralExamNotes || '';
-    document.getElementById('cleaningNotes').value = record.cleaningNotes || '';
-    document.getElementById('remarks').value = record.remarks || '';
+    // Fill dental exam form
+    setValue('toothExtraction', record.toothExtraction);
+    setValue('toothFilling', record.toothFilling);
+    setValue('toothCleaning', record.cleaning);
+    setValue('fluoride', record.fluoride);
+    setValue('dentalConsult', record.dentalConsultations);
+    setValue('severeCavities', record.severeCavities);
+    setValue('oralNotes', record.oralExamNotes);
+    setValue('cleaningNotes', record.cleaningNotes);
+    setValue('remarks', record.remarks);
 
     // Restore tooth chart if tooth data exists
     if (record.toothData) {
@@ -438,14 +448,16 @@ function displayConsolidatedInfo(record) {
         });
         updateToothFields();
     } else {
-        // Reset teeth to normal if no tooth data
         resetTeeth();
     }
 
     // Show the sections
-    document.getElementById('studentInfo')?.classList.remove('hidden');
-    document.getElementById('studentForm')?.classList.remove('hidden');
-    document.getElementById('selectedStudentName').textContent = record.name || record.completeName || 'Unknown';
+    const studentInfo = document.getElementById('studentInfo');
+    const studentForm = document.getElementById('studentForm');
+    const selectedName = document.getElementById('selectedStudentName');
+    if (studentInfo) studentInfo.classList.remove('hidden');
+    if (studentForm) studentForm.classList.remove('hidden');
+    if (selectedName) selectedName.textContent = record.name || record.completeName || 'Unknown';
 }
 
 // Helper to display previous exams
