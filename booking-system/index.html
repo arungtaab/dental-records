@@ -210,17 +210,19 @@
 
         .view-buttons {
             display: flex;
-            gap: 4px;
+            gap: 8px;
         }
 
         .view-btn {
-            padding: 6px 12px;
+            padding: 8px 20px;
             border: none;
             background: none;
-            border-radius: 20px;
-            font-size: 0.8rem;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            font-weight: 500;
             cursor: pointer;
             color: var(--gray);
+            transition: all 0.2s ease;
         }
 
         .view-btn.active {
@@ -230,24 +232,33 @@
 
         .nav-buttons {
             display: flex;
-            gap: 8px;
+            gap: 12px;
         }
 
         .nav-btn {
             background: none;
             border: none;
-            width: 36px;
-            height: 36px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
             color: var(--primary);
+            font-size: 1.2rem;
         }
 
         .nav-btn:active {
             background: rgba(0,0,0,0.05);
+        }
+
+        .current-date {
+            text-align: center;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--primary);
+            margin: 8px 0;
         }
 
         /* Search Box */
@@ -640,22 +651,11 @@
             background: white;
             border-radius: 16px;
             padding: 12px;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
         }
 
-        .fc-toolbar-title {
-            font-size: 1.1rem !important;
-        }
-
-        .fc-button {
-            padding: 6px 10px !important;
-            font-size: 0.85rem !important;
-            background: var(--primary) !important;
-            border: none !important;
-        }
-
-        .fc-button:active {
-            opacity: 0.8 !important;
+        .fc-toolbar {
+            display: none !important;
         }
 
         .fc-day-today {
@@ -665,8 +665,31 @@
         .fc-event {
             cursor: pointer;
             border-radius: 4px;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             padding: 2px 4px;
+            margin: 1px 0;
+        }
+
+        .fc-daygrid-day-number {
+            font-size: 0.9rem;
+            color: var(--primary);
+        }
+
+        .fc-timegrid-slot-label {
+            font-size: 0.8rem;
+        }
+
+        .fc-timegrid-axis {
+            font-size: 0.8rem;
+        }
+
+        .fc-col-header-cell {
+            font-size: 0.85rem;
+            padding: 8px 0;
+        }
+
+        .fc-col-header-cell-cushion {
+            color: var(--primary);
         }
 
         /* Hidden */
@@ -732,7 +755,6 @@
                     <div class="calendar-controls">
                         <div class="view-buttons">
                             <button class="view-btn active" onclick="changeCalendarView('day')">Day</button>
-                            <button class="view-btn" onclick="changeCalendarView('week')">Week</button>
                             <button class="view-btn" onclick="changeCalendarView('month')">Month</button>
                         </div>
                         <div class="nav-buttons">
@@ -741,6 +763,7 @@
                         </div>
                     </div>
                     <div id="calendar"></div>
+                    <div class="current-date" id="currentDateDisplay"></div>
                 </div>
 
                 <div class="card">
@@ -994,6 +1017,7 @@
         let selectedAppointment = null;
         let selectedPatient = null;
         let selectedSlot = null;
+        let currentView = 'day';
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1001,6 +1025,7 @@
             initializeCalendar();
             updateStats();
             loadTodayAppointments();
+            updateCurrentDateDisplay();
         });
 
         // Data Management
@@ -1055,9 +1080,79 @@
                         treatment: 'Accepted'
                     },
                     finalConsent: 'I consent to all treatments.'
+                },
+                {
+                    id: 'pat_' + Date.now() + '_3',
+                    timestamp: new Date().toISOString(),
+                    pupilName: 'Michael Brown',
+                    parentName: 'Sarah Brown',
+                    contactNumber: '0934567890',
+                    school: 'Riverside Academy',
+                    gradeSection: 'Grade 8 - Section C',
+                    treatments: {
+                        cleaning: 'Accepted',
+                        extractionPermanent: 'Accepted',
+                        extractionTemporary: 'Declined',
+                        filling: 'Accepted',
+                        sealant: 'Accepted',
+                        treatment: 'Declined'
+                    },
+                    finalConsent: 'I agree to the treatments.'
                 }
             ];
+            
+            // Sample appointments
+            const today = new Date();
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const nextWeek = new Date(today);
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            
+            appointments = [
+                {
+                    id: 'apt_' + Date.now() + '_1',
+                    patientName: 'John Smith',
+                    contactNumber: '0912345678',
+                    startTime: new Date(today.setHours(9, 0, 0, 0)).toISOString(),
+                    endTime: new Date(today.setHours(9, 30, 0, 0)).toISOString(),
+                    treatmentType: 'Cleaning',
+                    description: 'Regular cleaning appointment',
+                    status: 'upcoming'
+                },
+                {
+                    id: 'apt_' + Date.now() + '_2',
+                    patientName: 'Emily Johnson',
+                    contactNumber: '0923456789',
+                    startTime: new Date(today.setHours(14, 0, 0, 0)).toISOString(),
+                    endTime: new Date(today.setHours(14, 30, 0, 0)).toISOString(),
+                    treatmentType: 'Filling',
+                    description: 'Cavity filling',
+                    status: 'upcoming'
+                },
+                {
+                    id: 'apt_' + Date.now() + '_3',
+                    patientName: 'Michael Brown',
+                    contactNumber: '0934567890',
+                    startTime: new Date(tomorrow.setHours(10, 0, 0, 0)).toISOString(),
+                    endTime: new Date(tomorrow.setHours(10, 30, 0, 0)).toISOString(),
+                    treatmentType: 'Extraction',
+                    description: 'Tooth extraction',
+                    status: 'upcoming'
+                },
+                {
+                    id: 'apt_' + Date.now() + '_4',
+                    patientName: 'John Smith',
+                    contactNumber: '0912345678',
+                    startTime: new Date(nextWeek.setHours(11, 0, 0, 0)).toISOString(),
+                    endTime: new Date(nextWeek.setHours(11, 30, 0, 0)).toISOString(),
+                    treatmentType: 'Sealant',
+                    description: 'Dental sealant application',
+                    status: 'upcoming'
+                }
+            ];
+            
             savePatients();
+            saveAppointments();
         }
 
         function savePatients() {
@@ -1083,7 +1178,10 @@
             if (page === 'patients') {
                 loadPatientsList();
             } else if (page === 'calendar') {
-                if (calendar) calendar.refetchEvents();
+                if (calendar) {
+                    calendar.refetchEvents();
+                    updateCurrentDateDisplay();
+                }
                 loadTodayAppointments();
             }
         }
@@ -1101,7 +1199,7 @@
             const calendarEl = document.getElementById('calendar');
             
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: 'timeGridDay',
                 headerToolbar: false,
                 slotMinTime: '08:00:00',
                 slotMaxTime: '17:00:00',
@@ -1109,13 +1207,23 @@
                 slotDuration: '00:30:00',
                 height: 'auto',
                 locale: 'en',
+                firstDay: 1,
                 
                 eventClick: function(info) {
                     showAppointmentDetails(info.event);
                 },
                 
                 dateClick: function(info) {
-                    quickAddAppointment(info.date);
+                    if (currentView === 'day') {
+                        quickAddAppointment(info.date);
+                    } else {
+                        // In month view, switch to day view for the clicked date
+                        calendar.changeView('timeGridDay', info.date);
+                        currentView = 'day';
+                        document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+                        document.querySelector('.view-btn[onclick*="day"]').classList.add('active');
+                        updateCurrentDateDisplay();
+                    }
                 },
                 
                 editable: true,
@@ -1124,6 +1232,10 @@
                 },
                 eventResize: function(info) {
                     updateAppointmentTime(info.event);
+                },
+                
+                datesSet: function() {
+                    updateCurrentDateDisplay();
                 },
                 
                 events: function(fetchInfo, successCallback) {
@@ -1157,13 +1269,26 @@
             document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
             event.currentTarget.classList.add('active');
             
-            const viewMap = {
-                'day': 'timeGridDay',
-                'week': 'timeGridWeek',
-                'month': 'dayGridMonth'
-            };
+            currentView = view;
             
-            calendar.changeView(viewMap[view]);
+            if (view === 'day') {
+                calendar.changeView('timeGridDay');
+            } else {
+                calendar.changeView('dayGridMonth');
+            }
+            
+            updateCurrentDateDisplay();
+        }
+
+        function updateCurrentDateDisplay() {
+            const date = calendar.getDate();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            document.getElementById('currentDateDisplay').textContent = date.toLocaleDateString('en-US', options);
         }
 
         function getEventColor(type) {
@@ -1371,6 +1496,8 @@
         function filterPatients(type) {
             document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
             event.currentTarget.classList.add('active');
+            
+            // In a real implementation, you would filter the patients list
             loadPatientsList();
         }
 
@@ -1612,7 +1739,7 @@
                     </div>
                     <div class="info-item">
                         <i class="fas fa-calendar"></i>
-                        <span>${startTime.toLocaleDateString('en-US')}</span>
+                        <span>${startTime.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-clock"></i>
