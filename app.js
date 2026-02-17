@@ -481,6 +481,7 @@ window.loadExam = function(exam) {
 };
 
 // ==================== DENTAL EXAM SAVE (FIXED) ====================
+// ==================== DENTAL EXAM SAVE (DEBUG VERSION) ====================
 document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!currentStudentId) {
@@ -508,9 +509,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
     };
 
     // Merge with static student info to create a full record for Google Sheets
-    // using the exact field names expected by the Apps Script
     const fullRecord = {
-        // Static fields from currentStudent
         completeName: currentStudent.name,
         sex: currentStudent.sex,
         age: currentStudent.age,
@@ -522,53 +521,55 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         systemicConditions: currentStudent.systemicConditions,
         allergiesFood: currentStudent.allergiesFood,
         allergiesMedicines: currentStudent.allergiesMedicines,
-
-        // Hygiene fields (not collected in exam form, set to empty)
         hasToothbrush: '',
         brushFrequency: '',
         toothbrushChanges: '',
         usesToothpaste: '',
         dentalVisits: '',
-
-        // Exam fields (mapped to correct keys)
         toothExtraction: exam.toothExtraction,
         toothFilling: exam.toothFilling,
-        cleaning: exam.toothCleaning,          // critical: use 'cleaning' not 'toothCleaning'
+        cleaning: exam.toothCleaning,
         fluoride: exam.fluoride,
         dentalConsultations: exam.dentalConsult,
         severeCavities: exam.severeCavities,
         oralExamNotes: exam.oralNotes,
         cleaningNotes: exam.cleaningNotes,
         remarks: exam.remarks,
-
-        // Additional notes (optional, not in sheet but kept for local)
         extractionNotes: exam.extractionNotes,
         fillingNotes: exam.fillingNotes,
-
-        // Dental procedures (optional)
         dentalProcedures: ''
     };
 
-    console.log('Saving full record:', fullRecord); // for debugging
+    console.log('Sending full record to Apps Script:', fullRecord);
 
-    // Save exam locally for history
-    await openDB();
-    const tx = db.transaction('exams', 'readwrite');
-    const store = tx.objectStore('exams');
-    const req = store.add(exam);
-    req.onsuccess = () => {
-        showToast('✅ Dental record saved locally', 'success');
-        e.target.reset();
-        resetTeeth();
-        loadPreviousExams(currentStudentId);
+    try {
+        const formData = new FormData();
+        formData.append('action', 'save');
+        formData.append('record', JSON.stringify(fullRecord));
 
-        // Save the full record to pending for sync
-        savePending({ type: 'exam', data: fullRecord });
-        if (navigator.onLine) syncWithGoogleSheets();
-    };
-    req.onerror = () => showToast('❌ Save failed', 'error');
+        const response = await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+        console.log('Apps Script response:', result);
+
+        if (result.success) {
+            showToast('✅ Record saved to Google Sheets!', 'success');
+            e.target.reset();
+            resetTeeth();
+            // Optionally refresh previous exams list
+            loadPreviousExams(currentStudentId);
+        } else {
+            showToast('❌ Error: ' + (result.error || 'Unknown error'), 'error');
+            console.error('Save error:', result.error);
+        }
+    } catch (error) {
+        console.error('Network or other error:', error);
+        showToast('❌ Failed to save: ' + error.message, 'error');
+    }
 });
-
 // ==================== UI HELPERS ====================
 function switchTab(num) {
     document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===num-1));
@@ -638,3 +639,4 @@ window.addEventListener('load', async () => {
         navigator.serviceWorker.register('sw.js').catch(e => console.log('SW error', e));
     }
 });
+
