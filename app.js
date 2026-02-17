@@ -218,6 +218,7 @@ function resetTeeth() {
 }
 
 // ==================== STUDENT SEARCH (with online fallback) ====================
+// ==================== SEARCH FUNCTION (consolidates student + latest exam) ====================
 window.searchStudent = async function() {
     console.log('=== SEARCH FUNCTION STARTED ===');
     const name = document.getElementById('searchName')?.value.trim() || '';
@@ -240,7 +241,48 @@ window.searchStudent = async function() {
     try {
         await openDB();
 
-        // First, try local IndexedDB
+        // Try online search first if online
+        if (navigator.onLine) {
+            try {
+                const formData = new FormData();
+                formData.append('action', 'search');
+                formData.append('completeName', name);
+                formData.append('dob', dob);
+                formData.append('school', school);
+
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+
+                if (result.success && result.found && result.records.length > 0) {
+                    console.log('Found student online:', result.records[0]);
+                    
+                    // Get the most recent record (first in array)
+                    const latestRecord = result.records[0];
+                    
+                    // Display consolidated info
+                    displayConsolidatedInfo(latestRecord);
+                    
+                    // Save to local DB for offline use
+                    await saveStudentToLocal(latestRecord);
+                    
+                    // Load all previous exams for this student
+                    if (result.records.length > 1) {
+                        displayPreviousExams(result.records.slice(1));
+                    }
+                    
+                    showStatus('searchStatus', `✅ Found ${result.records.length} visit(s)`, 'success');
+                    loading?.classList.add('hidden');
+                    return;
+                }
+            } catch (e) {
+                console.log('Online search failed, trying local:', e);
+            }
+        }
+
+        // Try local search
         const tx = db.transaction('students', 'readonly');
         const store = tx.objectStore('students');
         const all = await new Promise(res => {
@@ -249,77 +291,56 @@ window.searchStudent = async function() {
             req.onerror = () => res([]);
         });
 
-        const matches = all.filter(s =>
+        // Find matching student
+        const student = all.find(s =>
             s.name?.toLowerCase() === name.toLowerCase() &&
             s.dob === dob &&
             s.school?.toLowerCase() === school.toLowerCase()
         );
 
-        if (matches.length) {
-            const student = matches.sort((a,b) => b.id - a.id)[0];
-            currentStudent = student;
-            currentStudentId = student.id;
-            displayStudentInfo(student);
-            loadPreviousExams(student.id);
-            showStatus('searchStatus', `✅ Found ${matches.length} locally`, 'success');
-            loading?.classList.add('hidden');
-            return;
-        }
+        if (student) {
+            console.log('Found student locally:', student);
+            
+            // Get their latest exam
+            const examTx = db.transaction('exams', 'readonly');
+            const examStore = examTx.objectStore('exams');
+            const examIndex = examStore.index('studentId');
+            const exams = await new Promise(res => {
+                const req = examIndex.getAll(student.id);
+                req.onsuccess = () => res(req.result || []);
+                req.onerror = () => res([]);
+            });
 
-        // Not found locally: try online if online
-        if (navigator.onLine) {
-            showStatus('searchStatus', '🌐 Not found locally, checking online...', 'info');
-            const formData = new FormData();
-            formData.append('action', 'search');
-            formData.append('completeName', name);
-            formData.append('dob', dob);
-            formData.append('school', school);
+            // Sort by date (most recent first)
+            exams.sort((a, b) => new Date(b.date) - new Date(a.date));
 
-            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-            const result = await response.json();
+            // Consolidate student info with latest exam
+            const consolidated = {
+                ...student,
+                ...(exams[0] || {}) // Merge with latest exam if exists
+            };
 
-            if (result.success && result.found && result.records.length) {
-                const onlineStudent = result.records[0];
-                const localStudent = {
-                    name: onlineStudent.completeName,
-                    sex: onlineStudent.sex,
-                    age: onlineStudent.age,
-                    dob: onlineStudent.dob,
-                    address: onlineStudent.address,
-                    school: onlineStudent.school,
-                    parentName: onlineStudent.parentName,
-                    contactNumber: onlineStudent.contactNumber,
-                    systemicConditions: onlineStudent.systemicConditions,
-                    allergiesFood: onlineStudent.allergiesFood,
-                    allergiesMedicines: onlineStudent.allergiesMedicines,
-                    lastUpdated: new Date().toISOString()
-                };
-                const addTx = db.transaction('students', 'readwrite');
-                const addStore = addTx.objectStore('students');
-                const id = await new Promise((res, rej) => {
-                    const req = addStore.add(localStudent);
-                    req.onsuccess = () => res(req.result);
-                    req.onerror = () => rej(req.error);
-                });
-                localStudent.id = id;
-                currentStudent = localStudent;
-                currentStudentId = id;
-                displayStudentInfo(localStudent);
-                showStatus('searchStatus', '✅ Student found online and cached', 'success');
-                loading?.classList.add('hidden');
-                return;
+            displayConsolidatedInfo(consolidated);
+            
+            if (exams.length > 1) {
+                displayPreviousExams(exams.slice(1));
+            } else if (exams.length === 1) {
+                // If there's exactly one exam, we already showed it
+                document.getElementById('previousRecords')?.classList.add('hidden');
             }
-        }
 
-        // Not found anywhere
-        if (confirm('❌ Student not found. Create new?')) {
-            document.getElementById('editName').value = name;
-            document.getElementById('editDob').value = dob;
-            document.getElementById('editSchool').value = school;
-            document.getElementById('studentForm')?.classList.remove('hidden');
-            showStatus('searchStatus', '📝 Fill in student details', 'info');
+            showStatus('searchStatus', `✅ Found locally with ${exams.length} exam(s)`, 'success');
         } else {
-            showStatus('searchStatus', '❌ Not found', 'error');
+            // Student not found anywhere
+            if (confirm('❌ Student not found. Create new record?')) {
+                document.getElementById('editName').value = name;
+                document.getElementById('editDob').value = dob;
+                document.getElementById('editSchool').value = school;
+                document.getElementById('studentForm')?.classList.remove('hidden');
+                showStatus('searchStatus', '📝 Fill in student details', 'info');
+            } else {
+                showStatus('searchStatus', '❌ Not found', 'error');
+            }
         }
     } catch (e) {
         console.error('Search error:', e);
@@ -329,156 +350,128 @@ window.searchStudent = async function() {
     }
 };
 
-function displayStudentInfo(s) {
-    const setText = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = val || '';
-    };
-    setText('displayName', s.name);
-    setText('displayDob', s.dob);
-    setText('displaySchool', s.school);
-    setText('displayParent', s.parentName);
-    setText('displayContact', s.contactNumber);
-    setText('displaySystemic', s.systemicConditions || 'None');
-    setText('displayFoodAllergy', s.allergiesFood || 'None');
-    setText('displayMedAllergy', s.allergiesMedicines || 'None');
+// Helper function to display consolidated info
+function displayConsolidatedInfo(record) {
+    // Display student info
+    document.getElementById('displayName').textContent = record.completeName || record.name || '';
+    document.getElementById('displayDob').textContent = record.dob || '';
+    document.getElementById('displaySchool').textContent = record.school || '';
+    document.getElementById('displayParent').textContent = record.parentName || '';
+    document.getElementById('displayContact').textContent = record.contactNumber || '';
+    document.getElementById('displaySystemic').textContent = record.systemicConditions || 'None';
+    document.getElementById('displayFoodAllergy').textContent = record.allergiesFood || 'None';
+    document.getElementById('displayMedAllergy').textContent = record.allergiesMedicines || 'None';
 
-    const setValue = (id, val) => {
-        const el = document.getElementById(id);
-        if (el) el.value = val || '';
-    };
-    setValue('editName', s.name);
-    setValue('editSex', s.sex);
-    setValue('editAge', s.age);
-    setValue('editDob', s.dob);
-    setValue('editAddress', s.address);
-    setValue('editSchool', s.school);
-    setValue('editParent', s.parentName);
-    setValue('editContact', s.contactNumber);
-    setValue('editSystemic', s.systemicConditions);
-    setValue('editFoodAllergy', s.allergiesFood);
-    setValue('editMedAllergy', s.allergiesMedicines);
+    // Fill edit form
+    document.getElementById('editName').value = record.completeName || record.name || '';
+    document.getElementById('editSex').value = record.sex || '';
+    document.getElementById('editAge').value = record.age || '';
+    document.getElementById('editDob').value = record.dob || '';
+    document.getElementById('editAddress').value = record.address || '';
+    document.getElementById('editSchool').value = record.school || '';
+    document.getElementById('editParent').value = record.parentName || '';
+    document.getElementById('editContact').value = record.contactNumber || '';
+    document.getElementById('editSystemic').value = record.systemicConditions || '';
+    document.getElementById('editFoodAllergy').value = record.allergiesFood || '';
+    document.getElementById('editMedAllergy').value = record.allergiesMedicines || '';
 
-    const infoDiv = document.getElementById('studentInfo');
-    if (infoDiv) infoDiv.classList.remove('hidden');
-    const formDiv = document.getElementById('studentForm');
-    if (formDiv) formDiv.classList.remove('hidden');
-    const selectedName = document.getElementById('selectedStudentName');
-    if (selectedName) selectedName.textContent = s.name || 'None';
-}
+    // Fill dental exam form with latest exam data
+    document.getElementById('toothExtraction').value = record.toothExtraction || '';
+    document.getElementById('toothFilling').value = record.toothFilling || '';
+    document.getElementById('toothCleaning').value = record.cleaning || '';
+    document.getElementById('fluoride').value = record.fluoride || '';
+    document.getElementById('dentalConsult').value = record.dentalConsultations || '';
+    document.getElementById('severeCavities').value = record.severeCavities || '';
+    document.getElementById('oralNotes').value = record.oralExamNotes || '';
+    document.getElementById('cleaningNotes').value = record.cleaningNotes || '';
+    document.getElementById('remarks').value = record.remarks || '';
 
-window.newStudent = function() {
-    ['editName','editSex','editAge','editDob','editAddress','editSchool',
-     'editParent','editContact','editSystemic','editFoodAllergy','editMedAllergy']
-        .forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = '';
-        });
-    document.getElementById('studentForm')?.classList.remove('hidden');
-    document.getElementById('studentInfo')?.classList.add('hidden');
-    const selected = document.getElementById('selectedStudentName');
-    if (selected) selected.textContent = 'New Student';
-    currentStudent = null;
-    currentStudentId = null;
-};
-
-window.saveStudentInfo = async function() {
-    const student = {
-        name: document.getElementById('editName')?.value || '',
-        sex: document.getElementById('editSex')?.value || '',
-        age: document.getElementById('editAge')?.value || '',
-        dob: document.getElementById('editDob')?.value || '',
-        address: document.getElementById('editAddress')?.value || '',
-        school: document.getElementById('editSchool')?.value || '',
-        parentName: document.getElementById('editParent')?.value || '',
-        contactNumber: document.getElementById('editContact')?.value || '',
-        systemicConditions: document.getElementById('editSystemic')?.value || '',
-        allergiesFood: document.getElementById('editFoodAllergy')?.value || '',
-        allergiesMedicines: document.getElementById('editMedAllergy')?.value || '',
-        lastUpdated: new Date().toISOString()
-    };
-    if (!student.name || !student.dob || !student.school) {
-        showToast('Please fill required fields', 'error');
-        return;
-    }
-    await openDB();
-    const tx = db.transaction('students', 'readwrite');
-    const store = tx.objectStore('students');
-    if (currentStudentId) {
-        student.id = currentStudentId;
-        await store.put(student);
-        currentStudent = student;
-    } else {
-        const id = await store.add(student);
-        student.id = id;
-        currentStudent = student;
-        currentStudentId = id;
-    }
-    displayStudentInfo(student);
-    showToast('✅ Student saved', 'success');
-    if (navigator.onLine) {
-        await savePending({ type: 'student', data: student });
-        syncWithGoogleSheets();
-    } else {
-        await savePending({ type: 'student', data: student });
-    }
-};
-
-async function loadPreviousExams(studentId) {
-    await openDB();
-    const tx = db.transaction('exams', 'readonly');
-    const store = tx.objectStore('exams');
-    const index = store.index('studentId');
-    const req = index.getAll(studentId);
-    req.onsuccess = () => {
-        const exams = req.result.sort((a,b) => new Date(b.date) - new Date(a.date));
-        const container = document.getElementById('recordsList');
-        const prevDiv = document.getElementById('previousRecords');
-        if (container && prevDiv) {
-            if (exams.length) {
-                container.innerHTML = exams.map(e => `
-                    <div class="record-item" onclick='loadExam(${JSON.stringify(e).replace(/'/g, "&#39;")})'>
-                        <div class="record-date">${new Date(e.date).toLocaleDateString()}</div>
-                        <div>Extraction: ${e.toothExtraction || '—'}</div>
-                        <div>Filling: ${e.toothFilling || '—'}</div>
-                    </div>
-                `).join('');
-                prevDiv.classList.remove('hidden');
-            } else {
-                prevDiv.classList.add('hidden');
+    // Restore tooth chart if tooth data exists
+    if (record.toothData) {
+        Object.assign(toothStatus, record.toothData);
+        document.querySelectorAll('.tooth-btn').forEach(btn => {
+            const tooth = btn.querySelector('.number')?.textContent;
+            if (tooth && toothStatus[tooth]) {
+                const status = toothStatus[tooth];
+                btn.className = `tooth-btn ${getStatusClass(status)}`;
+                btn.querySelector('.status').textContent = status;
             }
-        }
-    };
+        });
+        updateToothFields();
+    }
+
+    // Set current student
+    currentStudent = record;
+    currentStudentId = record.id;
+
+    // Show the sections
+    document.getElementById('studentInfo')?.classList.remove('hidden');
+    document.getElementById('studentForm')?.classList.remove('hidden');
+    document.getElementById('selectedStudentName').textContent = record.completeName || record.name || 'Unknown';
 }
 
-window.loadExam = function(exam) {
-    if (confirm('Load this previous exam? Current unsaved data will be lost.')) {
-        document.getElementById('toothExtraction').value = exam.toothExtraction || '';
-        document.getElementById('toothFilling').value = exam.toothFilling || '';
-        document.getElementById('toothCleaning').value = exam.toothCleaning || '';
-        document.getElementById('fluoride').value = exam.fluoride || '';
-        document.getElementById('dentalConsult').value = exam.dentalConsult || '';
-        document.getElementById('severeCavities').value = exam.severeCavities || '';
-        document.getElementById('oralNotes').value = exam.oralNotes || '';
-        document.getElementById('cleaningNotes').value = exam.cleaningNotes || '';
-        document.getElementById('extractionNotes').value = exam.extractionNotes || '';
-        document.getElementById('fillingNotes').value = exam.fillingNotes || '';
-        document.getElementById('remarks').value = exam.remarks || '';
-        if (exam.toothData) {
-            Object.assign(toothStatus, exam.toothData);
-            document.querySelectorAll('.tooth-btn').forEach(btn => {
-                const tooth = btn.querySelector('.number')?.textContent;
-                if (tooth) {
-                    const status = toothStatus[tooth] || 'N';
-                    btn.className = `tooth-btn ${getStatusClass(status)}`;
-                    btn.querySelector('.status').textContent = status;
-                }
-            });
-            updateToothFields();
+// Helper to display previous exams
+function displayPreviousExams(exams) {
+    const container = document.getElementById('recordsList');
+    const prevDiv = document.getElementById('previousRecords');
+    
+    if (!container || !prevDiv || !exams.length) return;
+    
+    container.innerHTML = exams.map(exam => `
+        <div class="record-item" onclick='loadExam(${JSON.stringify(exam).replace(/'/g, "&#39;")})'>
+            <div class="record-date">${new Date(exam.date).toLocaleDateString()}</div>
+            <div>Extraction: ${exam.toothExtraction || '—'}</div>
+            <div>Filling: ${exam.toothFilling || '—'}</div>
+        </div>
+    `).join('');
+    
+    prevDiv.classList.remove('hidden');
+}
+
+// Helper to save student to local DB
+async function saveStudentToLocal(record) {
+    try {
+        await openDB();
+        const student = {
+            name: record.completeName,
+            sex: record.sex,
+            age: record.age,
+            dob: record.dob,
+            address: record.address,
+            school: record.school,
+            parentName: record.parentName,
+            contactNumber: record.contactNumber,
+            systemicConditions: record.systemicConditions,
+            allergiesFood: record.allergiesFood,
+            allergiesMedicines: record.allergiesMedicines,
+            lastUpdated: new Date().toISOString()
+        };
+        
+        const tx = db.transaction('students', 'readwrite');
+        const store = tx.objectStore('students');
+        
+        // Check if student exists
+        const all = await new Promise(res => {
+            const req = store.getAll();
+            req.onsuccess = () => res(req.result);
+        });
+        
+        const existing = all.find(s => 
+            s.name === student.name && 
+            s.dob === student.dob && 
+            s.school === student.school
+        );
+        
+        if (existing) {
+            student.id = existing.id;
+            await store.put(student);
+        } else {
+            await store.add(student);
         }
-        showToast('Loaded previous exam', 'success');
+    } catch (e) {
+        console.error('Error saving student locally:', e);
     }
-};
+}
 
 // ==================== DENTAL EXAM SAVE (FINAL FIX) ====================
 document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
