@@ -3,41 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=yes, viewport-fit=cover">
+    <!-- Use mobile-web-app-capable instead of apple-specific deprecated tag -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Student Dental Records / Tala ng Ngipin ng Mag-aaral</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦷</text></svg>">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        .iframe-container {
-            width: 100%;
-            height: 800px;
-            border: none;
-            border-radius: 10px;
-            background: white;
-            position: relative;
-        }
-        .iframe-container iframe {
-            width: 100%;
-            height: 100%;
-            border: none;
-            border-radius: 10px;
-        }
-        .iframe-loading {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-        }
-        .relative { position: relative; }
-        .tab-content { overflow-y: auto; max-height: 800px; padding: 15px; }
+        .iframe-container { width:100%; height:800px; border:none; border-radius:10px; background:white; position:relative; }
+        .iframe-container iframe { width:100%; height:100%; border:none; border-radius:10px; }
+        .iframe-loading { position:absolute; top:0; left:0; right:0; bottom:0; background:white; display:flex; justify-content:center; align-items:center; z-index:10; }
+        .relative { position:relative; }
+        .tab-content { overflow-y:auto; max-height:800px; padding:15px; }
     </style>
 </head>
 <body>
@@ -102,7 +80,7 @@
                     <div id="searchLoading" class="loading hidden"><div class="spinner"></div><p>Searching / Naghahanap...</p></div>
                 </div>
 
-                <!-- Student Info Display (read‑only summary) -->
+                <!-- Student Info Display -->
                 <div id="studentInfo" class="student-card hidden">
                     <h3><span class="en">📋 Student Information</span><span class="tl">Impormasyon ng Mag-aaral</span></h3>
                     <div class="info-grid">
@@ -117,7 +95,7 @@
                     </div>
                 </div>
 
-                <!-- Student Edit Form (for new/edit) -->
+                <!-- Student Edit Form -->
                 <div id="studentForm" class="student-card hidden">
                     <h3><span class="en">📝 Edit Student Information</span><span class="tl">I-edit ang Impormasyon</span></h3>
                     <form id="studentInfoForm">
@@ -178,54 +156,19 @@
                     <h3><span class="en">📝 Dental Examination / Eksaminasyon sa Ngipin</span></h3>
                     <form id="dentalExamForm">
                         <div class="info-grid">
-                            <div class="form-group">
-                                <label>Tooth Extraction (FDI) / Pagbunot</label>
-                                <input type="text" id="toothExtraction" readonly placeholder="Click teeth above">
-                            </div>
-                            <div class="form-group">
-                                <label>Tooth Filling (FDI) / Pagpasta</label>
-                                <input type="text" id="toothFilling" readonly placeholder="Click teeth above">
-                            </div>
-                            <div class="form-group">
-                                <label>Cleaning (FDI) / Paglilinis</label>
-                                <input type="text" id="toothCleaning" placeholder="e.g., 11-18, 21-28">
-                            </div>
-                            <div class="form-group">
-                                <label>Fluoride</label>
-                                <select id="fluoride"><option value="">Select</option><option value="Oo">Oo / Yes</option><option value="Hindi">Hindi / No</option></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Dental Consultations / Konsultasyon</label>
-                                <select id="dentalConsult"><option value="">Select</option><option value="Oo">Oo / Yes</option><option value="Hindi">Hindi / No</option></select>
-                            </div>
-                            <div class="form-group">
-                                <label>Severe Cavities / Malubhang Karies</label>
-                                <select id="severeCavities"><option value="">Select</option><option value="Oo">Oo / Yes</option><option value="Hindi">Hindi / No</option></select>
-                            </div>
+                            <div class="form-group"><label>Tooth Extraction (FDI) / Pagbunot</label><input type="text" id="toothExtraction" readonly placeholder="Click teeth above"></div>
+                            <div class="form-group"><label>Tooth Filling (FDI) / Pagpasta</label><input type="text" id="toothFilling" readonly placeholder="Click teeth above"></div>
+                            <div class="form-group"><label>Cleaning (FDI) / Paglilinis</label><input type="text" id="toothCleaning" placeholder="e.g., 11-18, 21-28"></div>
+                            <div class="form-group"><label>Fluoride</label><select id="fluoride"><option value="">Select</option><option value="Oo">Oo / Yes</option><option value="Hindi">Hindi / No</option></select></div>
+                            <div class="form-group"><label>Dental Consultations / Konsultasyon</label><select id="dentalConsult"><option value="">Select</option><option value="Oo">Oo / Yes</option><option value="Hindi">Hindi / No</option></select></div>
+                            <div class="form-group"><label>Severe Cavities / Malubhang Karies</label><select id="severeCavities"><option value="">Select</option><option value="Oo">Oo / Yes</option><option value="Hindi">Hindi / No</option></select></div>
                         </div>
-                        <div class="form-group">
-                            <label>Oral Exam Notes / Mga Tala ng Pagsusuri</label>
-                            <textarea id="oralNotes" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Cleaning Notes / Mga Tala sa Paglilinis</label>
-                            <textarea id="cleaningNotes" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Extraction Notes / Mga Tala sa Pagbunot</label>
-                            <textarea id="extractionNotes" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Filling Notes / Mga Tala sa Pagpasta</label>
-                            <textarea id="fillingNotes" rows="2"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Remarks / Mga Puna</label>
-                            <textarea id="remarks" rows="3"></textarea>
-                        </div>
-                        <div class="btn-group">
-                            <button type="submit" class="btn btn-success">💾 Save Dental Record / I-save ang Tala</button>
-                        </div>
+                        <div class="form-group"><label>Oral Exam Notes / Mga Tala ng Pagsusuri</label><textarea id="oralNotes" rows="2"></textarea></div>
+                        <div class="form-group"><label>Cleaning Notes / Mga Tala sa Paglilinis</label><textarea id="cleaningNotes" rows="2"></textarea></div>
+                        <div class="form-group"><label>Extraction Notes / Mga Tala sa Pagbunot</label><textarea id="extractionNotes" rows="2"></textarea></div>
+                        <div class="form-group"><label>Filling Notes / Mga Tala sa Pagpasta</label><textarea id="fillingNotes" rows="2"></textarea></div>
+                        <div class="form-group"><label>Remarks / Mga Puna</label><textarea id="remarks" rows="3"></textarea></div>
+                        <div class="btn-group"><button type="submit" class="btn btn-success">💾 Save Dental Record / I-save ang Tala</button></div>
                     </form>
                     <div id="saveStatus" class="hidden"></div>
                 </div>
@@ -235,23 +178,19 @@
                     <h3><span class="en">📋 Previous Visits / Nakaraang Pagbisita</span></h3>
                     <div id="recordsList" class="records-list"></div>
                 </div>
-            </div> <!-- end tab1 -->
+            </div>
 
             <!-- TAB 2: Analysis Dashboard (iframe) -->
             <div id="tab2" class="tab-content hidden">
-                <div class="iframe-container">
-                    <iframe src="analysis-dashboard/index.html" title="Analysis Dashboard"></iframe>
-                </div>
+                <div class="iframe-container"><iframe src="analysis-dashboard/index.html" title="Analysis Dashboard"></iframe></div>
             </div>
 
             <!-- TAB 3: Booking System (iframe) -->
             <div id="tab3" class="tab-content hidden">
-                <div class="iframe-container">
-                    <iframe src="booking-system/index.html" title="Booking System"></iframe>
-                </div>
+                <div class="iframe-container"><iframe src="booking-system/index.html" title="Booking System"></iframe></div>
             </div>
-        </div> <!-- end content -->
-    </div> <!-- end container -->
+        </div>
+    </div>
 
     <div id="toast" class="toast hidden"></div>
     <script src="app.js"></script>
