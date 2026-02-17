@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
-    <title>牙科診所 - 手機預約系統</title>
+    <title>Dental Clinic - Mobile Booking System</title>
     
-    <!-- FullCalendar CSS (輕量級) -->
+    <!-- FullCalendar CSS -->
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
     
     <!-- Font Awesome -->
@@ -36,11 +36,8 @@
             background: var(--primary);
             color: #333;
             min-height: 100vh;
-            padding: 0;
-            margin: 0;
         }
 
-        /* 主要容器 */
         .app-container {
             max-width: 100%;
             margin: 0 auto;
@@ -50,7 +47,7 @@
             flex-direction: column;
         }
 
-        /* 頂部導航欄 */
+        /* Header */
         .app-header {
             background: white;
             padding: 12px 16px;
@@ -95,7 +92,7 @@
             background: rgba(0,0,0,0.05);
         }
 
-        /* 底部導航欄 */
+        /* Bottom Navigation */
         .bottom-nav {
             background: white;
             display: flex;
@@ -131,14 +128,14 @@
             color: var(--primary);
         }
 
-        /* 主要內容區域 */
+        /* Main Content */
         .main-content {
             flex: 1;
             padding: 16px;
             padding-bottom: 80px;
         }
 
-        /* 頁面切換 */
+        /* Pages */
         .page {
             display: none;
         }
@@ -147,7 +144,7 @@
             display: block;
         }
 
-        /* 卡片設計 */
+        /* Cards */
         .card {
             background: white;
             border-radius: 16px;
@@ -166,7 +163,7 @@
             gap: 8px;
         }
 
-        /* 統計卡片 */
+        /* Stats Cards */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -200,7 +197,60 @@
             color: var(--gray);
         }
 
-        /* 搜索框 */
+        /* Calendar View Controls */
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            background: white;
+            padding: 8px;
+            border-radius: 30px;
+        }
+
+        .view-buttons {
+            display: flex;
+            gap: 4px;
+        }
+
+        .view-btn {
+            padding: 6px 12px;
+            border: none;
+            background: none;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .view-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--primary);
+        }
+
+        .nav-btn:active {
+            background: rgba(0,0,0,0.05);
+        }
+
+        /* Search Box */
         .search-box {
             background: white;
             border-radius: 30px;
@@ -225,10 +275,6 @@
             background: transparent;
         }
 
-        .search-box input::placeholder {
-            color: #aaa;
-        }
-
         .search-box button {
             background: var(--primary);
             color: white;
@@ -239,14 +285,13 @@
             cursor: pointer;
         }
 
-        /* 過濾器按鈕 */
+        /* Filter Tabs */
         .filter-tabs {
             display: flex;
             gap: 8px;
             overflow-x: auto;
             padding: 4px 0 12px;
             scrollbar-width: none;
-            -webkit-overflow-scrolling: touch;
         }
 
         .filter-tabs::-webkit-scrollbar {
@@ -269,7 +314,7 @@
             border-color: var(--primary);
         }
 
-        /* 患者卡片 */
+        /* Patient Card */
         .patient-card {
             background: white;
             border-radius: 16px;
@@ -319,7 +364,7 @@
             color: var(--secondary);
         }
 
-        /* 治療同意標籤 */
+        /* Treatment Tags */
         .treatment-tags {
             display: flex;
             flex-wrap: wrap;
@@ -349,7 +394,7 @@
             border: 1px solid var(--danger);
         }
 
-        /* 預約卡片 */
+        /* Appointment Item */
         .appointment-item {
             background: white;
             border-radius: 12px;
@@ -359,6 +404,7 @@
             justify-content: space-between;
             align-items: center;
             border-left: 4px solid;
+            cursor: pointer;
         }
 
         .appointment-time {
@@ -377,7 +423,7 @@
             color: var(--gray);
         }
 
-        /* 按鈕 */
+        /* Buttons */
         .btn {
             background: var(--primary);
             color: white;
@@ -420,7 +466,7 @@
             color: var(--primary);
         }
 
-        /* 表單 */
+        /* Form */
         .form-group {
             margin-bottom: 16px;
         }
@@ -447,12 +493,15 @@
             border-color: var(--secondary);
         }
 
-        /* 時間選擇網格 */
+        /* Time Slots Grid */
         .time-slots-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin: 16px 0;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 4px;
         }
 
         .time-slot {
@@ -476,7 +525,7 @@
             pointer-events: none;
         }
 
-        /* 模態框 */
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -528,7 +577,7 @@
             padding: 8px;
         }
 
-        /* 動作按鈕組 */
+        /* Action Buttons */
         .action-buttons {
             display: flex;
             gap: 8px;
@@ -540,7 +589,7 @@
             margin: 0;
         }
 
-        /* 載入動畫 */
+        /* Loading */
         .loading {
             text-align: center;
             padding: 40px;
@@ -561,7 +610,7 @@
             100% { transform: rotate(360deg); }
         }
 
-        /* 通知提示 */
+        /* Toast */
         .toast {
             position: fixed;
             bottom: 100px;
@@ -586,7 +635,7 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* 日曆自定義 */
+        /* Calendar Customization */
         .fc {
             background: white;
             border-radius: 16px;
@@ -601,14 +650,31 @@
         .fc-button {
             padding: 6px 10px !important;
             font-size: 0.85rem !important;
+            background: var(--primary) !important;
+            border: none !important;
         }
 
-        /* 隱藏元素 */
+        .fc-button:active {
+            opacity: 0.8 !important;
+        }
+
+        .fc-day-today {
+            background: rgba(72, 159, 181, 0.1) !important;
+        }
+
+        .fc-event {
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            padding: 2px 4px;
+        }
+
+        /* Hidden */
         .hidden {
             display: none !important;
         }
 
-        /* 空白狀態 */
+        /* Empty State */
         .empty-state {
             text-align: center;
             padding: 40px 20px;
@@ -624,48 +690,55 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- 頂部導航 -->
+        <!-- Header -->
         <div class="app-header">
             <h1>
                 <i class="fas fa-tooth"></i>
-                牙科診所
+                Dental Clinic
             </h1>
             <button class="menu-btn" onclick="toggleMenu()">
                 <i class="fas fa-ellipsis-v"></i>
             </button>
         </div>
 
-        <!-- 主要內容 -->
+        <!-- Main Content -->
         <div class="main-content">
-            <!-- 日曆頁面 -->
+            <!-- Calendar Page -->
             <div id="calendarPage" class="page active">
                 <div class="stats-grid">
                     <div class="stat-card">
                         <i class="fas fa-calendar-day"></i>
                         <div class="stat-value" id="todayCount">0</div>
-                        <div class="stat-label">今日預約</div>
+                        <div class="stat-label">Today</div>
                     </div>
                     <div class="stat-card">
                         <i class="fas fa-clock"></i>
                         <div class="stat-value" id="upcomingCount">0</div>
-                        <div class="stat-label">即將到來</div>
+                        <div class="stat-label">Upcoming</div>
                     </div>
                     <div class="stat-card">
                         <i class="fas fa-check-circle"></i>
                         <div class="stat-value" id="completedCount">0</div>
-                        <div class="stat-label">已完成</div>
+                        <div class="stat-label">Completed</div>
                     </div>
                     <div class="stat-card">
                         <i class="fas fa-users"></i>
                         <div class="stat-value" id="totalPatients">0</div>
-                        <div class="stat-label">總患者</div>
+                        <div class="stat-label">Patients</div>
                     </div>
                 </div>
 
                 <div class="card">
-                    <div class="card-title">
-                        <i class="fas fa-calendar-alt"></i>
-                        預約日曆
+                    <div class="calendar-controls">
+                        <div class="view-buttons">
+                            <button class="view-btn active" onclick="changeCalendarView('day')">Day</button>
+                            <button class="view-btn" onclick="changeCalendarView('week')">Week</button>
+                            <button class="view-btn" onclick="changeCalendarView('month')">Month</button>
+                        </div>
+                        <div class="nav-buttons">
+                            <button class="nav-btn" onclick="calendar.prev()"><i class="fas fa-chevron-left"></i></button>
+                            <button class="nav-btn" onclick="calendar.next()"><i class="fas fa-chevron-right"></i></button>
+                        </div>
                     </div>
                     <div id="calendar"></div>
                 </div>
@@ -673,252 +746,248 @@
                 <div class="card">
                     <div class="card-title">
                         <i class="fas fa-list"></i>
-                        今日預約列表
+                        Today's Appointments
                     </div>
-                    <div id="todayAppointments">
-                        <!-- 動態加載 -->
-                    </div>
+                    <div id="todayAppointments"></div>
                 </div>
             </div>
 
-            <!-- 患者列表頁面 -->
+            <!-- Patients Page -->
             <div id="patientsPage" class="page">
                 <div class="search-box">
                     <i class="fas fa-search"></i>
-                    <input type="text" id="searchInput" placeholder="搜尋姓名、電話或學校...">
-                    <button onclick="searchPatients()">搜尋</button>
+                    <input type="text" id="searchInput" placeholder="Search by name, phone, school...">
+                    <button onclick="searchPatients()">Search</button>
                 </div>
 
                 <div class="filter-tabs">
-                    <button class="filter-tab active" onclick="filterPatients('all')">全部</button>
-                    <button class="filter-tab" onclick="filterPatients('approved')">已同意</button>
-                    <button class="filter-tab" onclick="filterPatients('pending')">待處理</button>
+                    <button class="filter-tab active" onclick="filterPatients('all')">All</button>
+                    <button class="filter-tab" onclick="filterPatients('approved')">Approved</button>
+                    <button class="filter-tab" onclick="filterPatients('pending')">Pending</button>
                 </div>
 
-                <div id="patientsList">
-                    <!-- 動態加載患者列表 -->
-                </div>
+                <div id="patientsList"></div>
             </div>
 
-            <!-- 新增患者頁面 -->
+            <!-- Add Patient Page -->
             <div id="addPatientPage" class="page">
                 <div class="card">
                     <div class="card-title">
                         <i class="fas fa-user-plus"></i>
-                        新增患者
+                        Add New Patient
                     </div>
                     
                     <form id="addPatientForm" onsubmit="addNewPatient(event)">
                         <div class="form-group">
-                            <label>學生姓名 *</label>
+                            <label>Student Name *</label>
                             <input type="text" class="form-control" id="newPupilName" required>
                         </div>
                         
                         <div class="form-group">
-                            <label>家長姓名 *</label>
+                            <label>Parent/Guardian Name *</label>
                             <input type="text" class="form-control" id="newParentName" required>
                         </div>
                         
                         <div class="form-group">
-                            <label>聯絡電話 *</label>
+                            <label>Contact Number *</label>
                             <input type="tel" class="form-control" id="newContactNumber" required placeholder="09123456789">
                         </div>
                         
                         <div class="form-group">
-                            <label>學校</label>
+                            <label>School</label>
                             <input type="text" class="form-control" id="newSchool">
                         </div>
                         
                         <div class="form-group">
-                            <label>班級</label>
+                            <label>Grade & Section</label>
                             <input type="text" class="form-control" id="newGradeSection">
                         </div>
 
                         <div style="margin: 20px 0; height: 1px; background: var(--border);"></div>
 
-                        <h4 style="margin-bottom: 16px; color: var(--primary);">治療同意書</h4>
+                        <h4 style="margin-bottom: 16px; color: var(--primary);">Treatment Consent</h4>
 
                         <div class="form-group">
-                            <label>洗牙 / 口腔預防</label>
+                            <label>Cleaning / Oral Prophylaxis</label>
                             <select class="form-control" id="newCleaning">
-                                <option value="">請選擇</option>
-                                <option value="Accepted">✅ 同意</option>
-                                <option value="Declined">❌ 不同意</option>
+                                <option value="">Select</option>
+                                <option value="Accepted">✅ Accepted</option>
+                                <option value="Declined">❌ Declined</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>拔牙 (恆齒)</label>
+                            <label>Extraction (Permanent)</label>
                             <select class="form-control" id="newExtractionPerm">
-                                <option value="">請選擇</option>
-                                <option value="Accepted">✅ 同意</option>
-                                <option value="Declined">❌ 不同意</option>
+                                <option value="">Select</option>
+                                <option value="Accepted">✅ Accepted</option>
+                                <option value="Declined">❌ Declined</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>拔牙 (乳齒)</label>
+                            <label>Extraction (Temporary)</label>
                             <select class="form-control" id="newExtractionTemp">
-                                <option value="">請選擇</option>
-                                <option value="Accepted">✅ 同意</option>
-                                <option value="Declined">❌ 不同意</option>
+                                <option value="">Select</option>
+                                <option value="Accepted">✅ Accepted</option>
+                                <option value="Declined">❌ Declined</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>補牙</label>
+                            <label>Filling</label>
                             <select class="form-control" id="newFilling">
-                                <option value="">請選擇</option>
-                                <option value="Accepted">✅ 同意</option>
-                                <option value="Declined">❌ 不同意</option>
+                                <option value="">Select</option>
+                                <option value="Accepted">✅ Accepted</option>
+                                <option value="Declined">❌ Declined</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>溝隙封填</label>
+                            <label>Sealant</label>
                             <select class="form-control" id="newSealant">
-                                <option value="">請選擇</option>
-                                <option value="Accepted">✅ 同意</option>
-                                <option value="Declined">❌ 不同意</option>
+                                <option value="">Select</option>
+                                <option value="Accepted">✅ Accepted</option>
+                                <option value="Declined">❌ Declined</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>一般治療</label>
+                            <label>General Treatment</label>
                             <select class="form-control" id="newTreatment">
-                                <option value="">請選擇</option>
-                                <option value="Accepted">✅ 同意</option>
-                                <option value="Declined">❌ 不同意</option>
+                                <option value="">Select</option>
+                                <option value="Accepted">✅ Accepted</option>
+                                <option value="Declined">❌ Declined</option>
                             </select>
                         </div>
 
                         <div class="form-group">
-                            <label>最終同意聲明</label>
-                            <textarea class="form-control" id="newFinalConsent" rows="3">本人同意接受上述牙科治療</textarea>
+                            <label>Final Consent Statement</label>
+                            <textarea class="form-control" id="newFinalConsent" rows="3">I hereby give my consent for the above dental treatments.</textarea>
                         </div>
 
                         <button type="submit" class="btn">
-                            <i class="fas fa-save"></i> 儲存患者資料
+                            <i class="fas fa-save"></i> Save Patient
                         </button>
                     </form>
                 </div>
             </div>
 
-            <!-- 設定頁面 -->
+            <!-- Settings Page -->
             <div id="settingsPage" class="page">
                 <div class="card">
                     <div class="card-title">
                         <i class="fas fa-database"></i>
-                        資料管理
+                        Data Management
                     </div>
                     
                     <button class="btn btn-outline" onclick="exportData()">
-                        <i class="fas fa-download"></i> 匯出資料
+                        <i class="fas fa-download"></i> Export Data
                     </button>
                     
                     <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
-                        <i class="fas fa-upload"></i> 匯入資料
+                        <i class="fas fa-upload"></i> Import Data
                     </button>
                     <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(this)">
                     
                     <button class="btn btn-outline" onclick="downloadSampleData()">
-                        <i class="fas fa-file"></i> 下載範例資料
+                        <i class="fas fa-file"></i> Download Sample
                     </button>
                     
                     <button class="btn btn-danger" onclick="resetAllData()">
-                        <i class="fas fa-trash"></i> 重置所有資料
+                        <i class="fas fa-trash"></i> Reset All Data
                     </button>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
                         <i class="fas fa-info-circle"></i>
-                        關於系統
+                        About
                     </div>
-                    <p style="margin-bottom: 8px;">牙科診所預約系統 v1.0</p>
-                    <p style="color: var(--gray); font-size: 0.85rem;">所有資料儲存在本地，清除瀏覽器資料會導致資料遺失。</p>
+                    <p style="margin-bottom: 8px;">Dental Clinic Booking System v1.0</p>
+                    <p style="color: var(--gray); font-size: 0.85rem;">All data is stored locally in your browser.</p>
                 </div>
             </div>
         </div>
 
-        <!-- 底部導航 -->
+        <!-- Bottom Navigation -->
         <div class="bottom-nav">
             <button class="nav-item active" onclick="switchPage('calendar')">
                 <i class="fas fa-calendar-alt"></i>
-                <span>日曆</span>
+                <span>Calendar</span>
             </button>
             <button class="nav-item" onclick="switchPage('patients')">
                 <i class="fas fa-users"></i>
-                <span>患者</span>
+                <span>Patients</span>
             </button>
             <button class="nav-item" onclick="switchPage('addPatient')">
                 <i class="fas fa-user-plus"></i>
-                <span>新增</span>
+                <span>Add</span>
             </button>
             <button class="nav-item" onclick="switchPage('settings')">
                 <i class="fas fa-cog"></i>
-                <span>設定</span>
+                <span>Settings</span>
             </button>
         </div>
     </div>
 
-    <!-- 預約詳情模態框 -->
+    <!-- Appointment Details Modal -->
     <div id="appointmentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>預約詳情</h3>
+                <h3>Appointment Details</h3>
                 <button class="modal-close" onclick="closeModal()">&times;</button>
             </div>
             <div id="modalBody"></div>
             <div class="action-buttons">
                 <button class="btn btn-small btn-success" onclick="sendReminder()">
-                    <i class="fas fa-bell"></i> 提醒
+                    <i class="fas fa-bell"></i> Remind
                 </button>
                 <button class="btn btn-small btn-danger" onclick="cancelAppointment()">
-                    <i class="fas fa-trash"></i> 取消
+                    <i class="fas fa-trash"></i> Cancel
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- 預約模態框 -->
+    <!-- Book Modal -->
     <div id="bookModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>新增預約</h3>
+                <h3>Book Appointment</h3>
                 <button class="modal-close" onclick="closeBookModal()">&times;</button>
             </div>
             <div id="bookModalBody"></div>
         </div>
     </div>
 
-    <!-- 選單模態框 -->
+    <!-- Menu Modal -->
     <div id="menuModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>選單</h3>
+                <h3>Menu</h3>
                 <button class="modal-close" onclick="closeMenu()">&times;</button>
             </div>
             <button class="btn btn-outline" onclick="exportData(); closeMenu();">
-                <i class="fas fa-download"></i> 匯出資料
+                <i class="fas fa-download"></i> Export Data
             </button>
             <button class="btn btn-outline" onclick="document.getElementById('importFile').click(); closeMenu();">
-                <i class="fas fa-upload"></i> 匯入資料
+                <i class="fas fa-upload"></i> Import Data
             </button>
             <button class="btn btn-outline" onclick="downloadSampleData(); closeMenu();">
-                <i class="fas fa-file"></i> 下載範例
+                <i class="fas fa-file"></i> Download Sample
             </button>
         </div>
     </div>
 
-    <!-- 通知提示 -->
+    <!-- Toast -->
     <div id="toast" class="toast"></div>
 
     <!-- FullCalendar JS -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
 
     <script>
-        // ==================== 全域變數 ====================
+        // Global Variables
         let calendar;
         let appointments = [];
         let patients = [];
@@ -926,7 +995,7 @@
         let selectedPatient = null;
         let selectedSlot = null;
 
-        // ==================== 初始化 ====================
+        // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
             initializeCalendar();
@@ -934,8 +1003,8 @@
             loadTodayAppointments();
         });
 
+        // Data Management
         function loadData() {
-            // 載入患者資料
             const savedPatients = localStorage.getItem('dentalPatients');
             if (savedPatients) {
                 patients = JSON.parse(savedPatients);
@@ -943,7 +1012,6 @@
                 loadSamplePatients();
             }
             
-            // 載入預約資料
             const savedAppointments = localStorage.getItem('dentalAppointments');
             if (savedAppointments) {
                 appointments = JSON.parse(savedAppointments);
@@ -955,11 +1023,11 @@
                 {
                     id: 'pat_' + Date.now() + '_1',
                     timestamp: new Date().toISOString(),
-                    pupilName: '王小明',
-                    parentName: '王大明',
+                    pupilName: 'John Smith',
+                    parentName: 'Mary Smith',
                     contactNumber: '0912345678',
-                    school: '光明國小',
-                    gradeSection: '五年一班',
+                    school: 'Central Elementary',
+                    gradeSection: 'Grade 5 - Section A',
                     treatments: {
                         cleaning: 'Accepted',
                         extractionPermanent: 'Declined',
@@ -968,16 +1036,16 @@
                         sealant: 'Declined',
                         treatment: 'Accepted'
                     },
-                    finalConsent: '本人同意上述牙科治療'
+                    finalConsent: 'I hereby give my consent for the above dental treatments.'
                 },
                 {
                     id: 'pat_' + Date.now() + '_2',
                     timestamp: new Date().toISOString(),
-                    pupilName: '李小華',
-                    parentName: '李太太',
+                    pupilName: 'Emily Johnson',
+                    parentName: 'Robert Johnson',
                     contactNumber: '0923456789',
-                    school: '仁愛國中',
-                    gradeSection: '二年三班',
+                    school: 'West High School',
+                    gradeSection: 'Grade 10 - Section B',
                     treatments: {
                         cleaning: 'Accepted',
                         extractionPermanent: 'Accepted',
@@ -986,7 +1054,7 @@
                         sealant: 'Accepted',
                         treatment: 'Accepted'
                     },
-                    finalConsent: '同意所有治療'
+                    finalConsent: 'I consent to all treatments.'
                 }
             ];
             savePatients();
@@ -1004,7 +1072,7 @@
             loadTodayAppointments();
         }
 
-        // ==================== 頁面切換 ====================
+        // Page Navigation
         function switchPage(page) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(page + 'Page').classList.add('active');
@@ -1028,41 +1096,36 @@
             document.getElementById('menuModal').classList.remove('active');
         }
 
-        // ==================== 日曆功能 ====================
+        // Calendar Functions
         function initializeCalendar() {
             const calendarEl = document.getElementById('calendar');
             
             calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'timeGridDay',
-                headerToolbar: {
-                    left: 'prev,next',
-                    center: 'title',
-                    right: 'today'
-                },
+                initialView: 'dayGridMonth',
+                headerToolbar: false,
                 slotMinTime: '08:00:00',
                 slotMaxTime: '17:00:00',
                 allDaySlot: false,
                 slotDuration: '00:30:00',
                 height: 'auto',
-                locale: 'zh-tw',
+                locale: 'en',
                 
-                // 事件點擊
                 eventClick: function(info) {
                     showAppointmentDetails(info.event);
                 },
                 
-                // 日期點擊
                 dateClick: function(info) {
                     quickAddAppointment(info.date);
                 },
                 
-                // 拖拽調整
                 editable: true,
                 eventDrop: function(info) {
                     updateAppointmentTime(info.event);
                 },
+                eventResize: function(info) {
+                    updateAppointmentTime(info.event);
+                },
                 
-                // 載入事件
                 events: function(fetchInfo, successCallback) {
                     const filtered = appointments.filter(apt => {
                         const aptStart = new Date(apt.startTime);
@@ -1090,12 +1153,25 @@
             calendar.render();
         }
 
+        function changeCalendarView(view) {
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            
+            const viewMap = {
+                'day': 'timeGridDay',
+                'week': 'timeGridWeek',
+                'month': 'dayGridMonth'
+            };
+            
+            calendar.changeView(viewMap[view]);
+        }
+
         function getEventColor(type) {
             const t = (type || '').toLowerCase();
-            if (t.includes('洗') || t.includes('clean')) return '#34a853';
-            if (t.includes('拔')) return '#ea4335';
-            if (t.includes('補')) return '#fbbc05';
-            if (t.includes('溝') || t.includes('seal')) return '#4285f4';
+            if (t.includes('clean')) return '#34a853';
+            if (t.includes('extract')) return '#ea4335';
+            if (t.includes('fill')) return '#fbbc05';
+            if (t.includes('seal')) return '#4285f4';
             return '#16697a';
         }
 
@@ -1105,7 +1181,7 @@
                 apt.startTime = event.start.toISOString();
                 apt.endTime = event.end.toISOString();
                 saveAppointments();
-                showToast('預約時間已更新');
+                showToast('Appointment updated');
             }
         }
 
@@ -1116,33 +1192,33 @@
             const modalBody = document.getElementById('bookModalBody');
             modalBody.innerHTML = `
                 <div class="form-group">
-                    <label>患者姓名 *</label>
+                    <label>Patient Name *</label>
                     <input type="text" class="form-control" id="quickPatientName" required>
                 </div>
                 <div class="form-group">
-                    <label>聯絡電話</label>
+                    <label>Contact Number</label>
                     <input type="tel" class="form-control" id="quickContact">
                 </div>
                 <div class="form-group">
-                    <label>日期</label>
+                    <label>Date</label>
                     <input type="date" class="form-control" id="quickDate" value="${selectedDate}">
                 </div>
                 <div class="form-group">
-                    <label>時間</label>
+                    <label>Time</label>
                     <input type="time" class="form-control" id="quickTime" value="09:00">
                 </div>
                 <div class="form-group">
-                    <label>治療類型</label>
+                    <label>Treatment Type</label>
                     <select class="form-control" id="quickTreatment">
-                        <option value="一般檢查">一般檢查</option>
-                        <option value="洗牙">洗牙</option>
-                        <option value="拔牙">拔牙</option>
-                        <option value="補牙">補牙</option>
-                        <option value="溝隙封填">溝隙封填</option>
+                        <option value="General Checkup">General Checkup</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Extraction">Extraction</option>
+                        <option value="Filling">Filling</option>
+                        <option value="Sealant">Sealant</option>
                     </select>
                 </div>
                 <button class="btn" onclick="saveQuickAppointment()">
-                    <i class="fas fa-save"></i> 儲存預約
+                    <i class="fas fa-save"></i> Save Appointment
                 </button>
             `;
             
@@ -1157,7 +1233,7 @@
             const treatment = document.getElementById('quickTreatment').value;
             
             if (!patientName || !date || !time) {
-                showToast('請填寫必要欄位', 'error');
+                showToast('Please fill in required fields', 'error');
                 return;
             }
             
@@ -1177,10 +1253,10 @@
             appointments.push(newAppointment);
             saveAppointments();
             closeBookModal();
-            showToast('預約已新增');
+            showToast('Appointment added');
         }
 
-        // ==================== 患者管理 ====================
+        // Patient Management
         function loadPatientsList() {
             const listDiv = document.getElementById('patientsList');
             let html = '';
@@ -1193,9 +1269,9 @@
                 html = `
                     <div class="empty-state">
                         <i class="fas fa-users"></i>
-                        <p>尚無患者資料</p>
+                        <p>No patients found</p>
                         <button class="btn btn-small" onclick="switchPage('addPatient')">
-                            新增患者
+                            Add Patient
                         </button>
                     </div>
                 `;
@@ -1211,7 +1287,7 @@
                 <div class="patient-card">
                     <div class="patient-header">
                         <span class="patient-name">${patient.pupilName}</span>
-                        <span class="patient-badge">同意 ${approvedCount}/6</span>
+                        <span class="patient-badge">${approvedCount}/6 Approved</span>
                     </div>
                     
                     <div class="patient-info">
@@ -1225,28 +1301,28 @@
                         </div>
                         <div class="info-item">
                             <i class="fas fa-school"></i>
-                            <span>${patient.school || '未填寫'}</span>
+                            <span>${patient.school || 'Not specified'}</span>
                         </div>
                         <div class="info-item">
                             <i class="fas fa-graduation-cap"></i>
-                            <span>${patient.gradeSection || '未填寫'}</span>
+                            <span>${patient.gradeSection || 'Not specified'}</span>
                         </div>
                     </div>
                     
                     <div class="treatment-tags">
-                        ${createTreatmentTag('洗牙', patient.treatments?.cleaning)}
-                        ${createTreatmentTag('拔牙(恆)', patient.treatments?.extractionPermanent)}
-                        ${createTreatmentTag('拔牙(乳)', patient.treatments?.extractionTemporary)}
-                        ${createTreatmentTag('補牙', patient.treatments?.filling)}
-                        ${createTreatmentTag('溝隙', patient.treatments?.sealant)}
+                        ${createTreatmentTag('Clean', patient.treatments?.cleaning)}
+                        ${createTreatmentTag('Extract(P)', patient.treatments?.extractionPermanent)}
+                        ${createTreatmentTag('Extract(T)', patient.treatments?.extractionTemporary)}
+                        ${createTreatmentTag('Fill', patient.treatments?.filling)}
+                        ${createTreatmentTag('Seal', patient.treatments?.sealant)}
                     </div>
                     
                     <div class="action-buttons">
-                        <button class="btn btn-small btn-success" onclick="openBookingModal(${JSON.stringify(patient).replace(/"/g, '&quot;')})">
-                            <i class="fas fa-calendar-plus"></i> 預約
+                        <button class="btn btn-small btn-success" onclick='openBookingModal(${JSON.stringify(patient).replace(/'/g, "\\'")})'>
+                            <i class="fas fa-calendar-plus"></i> Book
                         </button>
                         <button class="btn btn-small btn-outline" onclick="editPatient('${patient.id}')">
-                            <i class="fas fa-edit"></i> 編輯
+                            <i class="fas fa-edit"></i> Edit
                         </button>
                     </div>
                 </div>
@@ -1276,7 +1352,8 @@
             const filtered = patients.filter(p => 
                 p.pupilName.toLowerCase().includes(term) ||
                 (p.parentName || '').toLowerCase().includes(term) ||
-                (p.contactNumber || '').includes(term)
+                (p.contactNumber || '').includes(term) ||
+                (p.school || '').toLowerCase().includes(term)
             );
             
             let html = '';
@@ -1285,7 +1362,7 @@
             });
             
             if (filtered.length === 0) {
-                html = '<div class="empty-state">找不到符合的患者</div>';
+                html = '<div class="empty-state">No patients found</div>';
             }
             
             listDiv.innerHTML = html;
@@ -1294,8 +1371,6 @@
         function filterPatients(type) {
             document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            
-            // 過濾邏輯
             loadPatientsList();
         }
 
@@ -1327,14 +1402,13 @@
             document.getElementById('addPatientForm').reset();
             switchPage('patients');
             loadPatientsList();
-            showToast('患者資料已儲存');
+            showToast('Patient saved');
         }
 
         function editPatient(id) {
             const patient = patients.find(p => p.id === id);
             if (!patient) return;
             
-            // 切換到新增頁面並填入資料
             switchPage('addPatient');
             
             document.getElementById('newPupilName').value = patient.pupilName || '';
@@ -1350,11 +1424,10 @@
             document.getElementById('newTreatment').value = patient.treatments?.treatment || '';
             document.getElementById('newFinalConsent').value = patient.finalConsent || '';
             
-            // 移除舊資料
             patients = patients.filter(p => p.id !== id);
         }
 
-        // ==================== 預約功能 ====================
+        // Booking Functions
         function openBookingModal(patient) {
             selectedPatient = patient;
             const modalBody = document.getElementById('bookModalBody');
@@ -1363,37 +1436,37 @@
             
             modalBody.innerHTML = `
                 <div style="margin-bottom: 20px;">
-                    <strong>患者：</strong> ${patient.pupilName}<br>
-                    <strong>電話：</strong> ${patient.contactNumber}
+                    <strong>Patient:</strong> ${patient.pupilName}<br>
+                    <strong>Contact:</strong> ${patient.contactNumber}
                 </div>
                 
                 <div class="form-group">
-                    <label>預約日期</label>
+                    <label>Appointment Date</label>
                     <input type="date" class="form-control" id="appointmentDate" min="${today}" value="${today}" onchange="loadTimeSlots()">
                 </div>
                 
                 <div class="form-group">
-                    <label>治療類型</label>
+                    <label>Treatment Type</label>
                     <select class="form-control" id="treatmentType">
-                        <option value="一般檢查">一般檢查</option>
-                        <option value="洗牙">洗牙</option>
-                        <option value="拔牙">拔牙</option>
-                        <option value="補牙">補牙</option>
-                        <option value="溝隙封填">溝隙封填</option>
+                        <option value="General Checkup">General Checkup</option>
+                        <option value="Cleaning">Cleaning</option>
+                        <option value="Extraction">Extraction</option>
+                        <option value="Filling">Filling</option>
+                        <option value="Sealant">Sealant</option>
                     </select>
                 </div>
                 
                 <div class="time-slots-grid" id="timeSlotsContainer">
-                    <p style="grid-column: 1/-1; text-align: center;">請選擇日期查看可預約時間</p>
+                    <p style="grid-column: 1/-1; text-align: center;">Select date to see available slots</p>
                 </div>
                 
                 <div class="form-group">
-                    <label>備註</label>
+                    <label>Notes</label>
                     <textarea class="form-control" id="bookingNotes" rows="2"></textarea>
                 </div>
                 
                 <button class="btn" onclick="confirmBooking()">
-                    <i class="fas fa-check"></i> 確認預約
+                    <i class="fas fa-check"></i> Confirm Booking
                 </button>
             `;
             
@@ -1406,13 +1479,12 @@
             
             const slots = [];
             for (let hour = 8; hour < 17; hour++) {
-                if (hour === 12) continue; // 午休
+                if (hour === 12) continue; // Lunch break
                 
                 for (let minute of [0, 30]) {
                     const timeStr = `${hour.toString().padStart(2,'0')}:${minute.toString().padStart(2,'0')}`;
                     const slotTime = new Date(date + 'T' + timeStr);
                     
-                    // 檢查是否已被預約
                     const isAvailable = !appointments.some(apt => {
                         const aptStart = new Date(apt.startTime);
                         const aptEnd = new Date(apt.endTime);
@@ -1421,7 +1493,7 @@
                     
                     slots.push({
                         time: `${hour}:${minute.toString().padStart(2,'0')}`,
-                        display: `${hour > 12 ? hour-12 : hour}:${minute.toString().padStart(2,'0')} ${hour >= 12 ? '下午' : '上午'}`,
+                        display: `${hour > 12 ? hour-12 : hour}:${minute.toString().padStart(2,'0')} ${hour >= 12 ? 'PM' : 'AM'}`,
                         available: isAvailable
                     });
                 }
@@ -1454,7 +1526,7 @@
 
         function confirmBooking() {
             if (!selectedPatient || !selectedSlot) {
-                showToast('請選擇預約時間', 'error');
+                showToast('Please select a time slot', 'error');
                 return;
             }
             
@@ -1484,7 +1556,7 @@
             saveAppointments();
             
             closeBookModal();
-            showToast('預約成功');
+            showToast('Appointment booked');
             switchPage('calendar');
         }
 
@@ -1497,19 +1569,19 @@
             const container = document.getElementById('todayAppointments');
             
             if (todayAppointments.length === 0) {
-                container.innerHTML = '<div class="empty-state">今日無預約</div>';
+                container.innerHTML = '<div class="empty-state">No appointments today</div>';
                 return;
             }
             
             let html = '';
             todayAppointments.forEach(apt => {
-                const time = new Date(apt.startTime).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' });
+                const time = new Date(apt.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 html += `
                     <div class="appointment-item" style="border-left-color: ${getEventColor(apt.treatmentType)}" onclick="showAppointmentDetails({id: '${apt.id}'})">
                         <div>
                             <div class="appointment-time">${time}</div>
                             <div class="appointment-patient">${apt.patientName}</div>
-                            <div class="appointment-type">${apt.treatmentType || '一般檢查'}</div>
+                            <div class="appointment-type">${apt.treatmentType || 'General'}</div>
                         </div>
                         <i class="fas fa-chevron-right" style="color: var(--gray);"></i>
                     </div>
@@ -1536,24 +1608,24 @@
                     </div>
                     <div class="info-item">
                         <i class="fas fa-phone"></i>
-                        <span>${apt.contactNumber || '未提供'}</span>
+                        <span>${apt.contactNumber || 'Not provided'}</span>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-calendar"></i>
-                        <span>${startTime.toLocaleDateString('zh-TW')}</span>
+                        <span>${startTime.toLocaleDateString('en-US')}</span>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-clock"></i>
-                        <span>${startTime.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>${startTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                     <div class="info-item">
                         <i class="fas fa-stethoscope"></i>
-                        <span>${apt.treatmentType || '一般檢查'}</span>
+                        <span>${apt.treatmentType || 'General'}</span>
                     </div>
                 </div>
                 ${apt.description ? `
                     <div style="margin-top: 16px; padding: 12px; background: #f5f5f5; border-radius: 8px;">
-                        <strong>備註：</strong><br>${apt.description}
+                        <strong>Notes:</strong><br>${apt.description}
                     </div>
                 ` : ''}
             `;
@@ -1573,22 +1645,22 @@
 
         function sendReminder() {
             if (!selectedAppointment) return;
-            showToast(`已發送提醒給 ${selectedAppointment.patientName}`);
+            showToast(`Reminder sent to ${selectedAppointment.patientName}`);
             closeModal();
         }
 
         function cancelAppointment() {
             if (!selectedAppointment) return;
             
-            if (confirm('確定要取消這個預約嗎？')) {
+            if (confirm('Are you sure you want to cancel this appointment?')) {
                 appointments = appointments.filter(a => a.id !== selectedAppointment.id);
                 saveAppointments();
                 closeModal();
-                showToast('預約已取消');
+                showToast('Appointment cancelled');
             }
         }
 
-        // ==================== 統計功能 ====================
+        // Stats
         function updateStats() {
             const today = new Date().toDateString();
             let todayCount = 0;
@@ -1608,7 +1680,7 @@
             document.getElementById('totalPatients').textContent = patients.length;
         }
 
-        // ==================== 資料管理 ====================
+        // Data Management
         function exportData() {
             const data = {
                 patients: patients,
@@ -1619,14 +1691,14 @@
             const dataStr = JSON.stringify(data, null, 2);
             const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
             
-            const fileName = '牙科診所備份_' + new Date().toISOString().split('T')[0] + '.json';
+            const fileName = 'dental_clinic_backup_' + new Date().toISOString().split('T')[0] + '.json';
             
             const link = document.createElement('a');
             link.setAttribute('href', dataUri);
             link.setAttribute('download', fileName);
             link.click();
             
-            showToast('資料已匯出');
+            showToast('Data exported');
         }
 
         function importData(input) {
@@ -1648,13 +1720,13 @@
                         saveAppointments();
                     }
                     
-                    showToast('資料已匯入');
+                    showToast('Data imported');
                     if (document.getElementById('patientsPage').classList.contains('active')) {
                         loadPatientsList();
                     }
                     
                 } catch (error) {
-                    showToast('匯入失敗：檔案格式錯誤', 'error');
+                    showToast('Import failed: Invalid file', 'error');
                 }
                 
                 input.value = '';
@@ -1673,23 +1745,23 @@
             
             const link = document.createElement('a');
             link.setAttribute('href', dataUri);
-            link.setAttribute('download', '牙科診所範例資料.json');
+            link.setAttribute('download', 'dental_clinic_sample.json');
             link.click();
         }
 
         function resetAllData() {
-            if (confirm('確定要重置所有資料嗎？此動作無法復原。')) {
+            if (confirm('Are you sure you want to reset all data? This cannot be undone.')) {
                 localStorage.removeItem('dentalPatients');
                 localStorage.removeItem('dentalAppointments');
                 patients = [];
                 appointments = [];
                 loadSamplePatients();
-                showToast('資料已重置');
+                showToast('Data reset');
                 location.reload();
             }
         }
 
-        // ==================== 工具函數 ====================
+        // Toast
         function showToast(message, type = 'success') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
