@@ -748,14 +748,28 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         });
         console.log('Exam saved locally with ID', examId);
         
-        if (navigator.onLine) {
+if (navigator.onLine) {
     try {
+        console.log('Sending to Apps Script:', fullRecord);
         const formData = new FormData();
         formData.append('action', 'save');
         formData.append('record', JSON.stringify(fullRecord));
 
         const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-        if (response.ok) {
+        const responseText = await response.text();
+        console.log('Apps Script raw response:', responseText);
+
+        let result;
+        try {
+            result = JSON.parse(responseText);
+        } catch (e) {
+            console.error('Failed to parse JSON response:', responseText);
+            showToast('❌ Server returned invalid JSON', 'error');
+            // Still consider it saved locally? We'll keep as unsynced.
+            return; // exit early, don't mark as synced
+        }
+
+        if (result.success) {
             // Deep clone fullRecord to avoid any non‑cloneable remnants
             const clonedRecord = JSON.parse(JSON.stringify(fullRecord));
             const updatedExam = {
@@ -774,7 +788,9 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
             });
             showToast('✅ Saved to Google Sheet and synced!', 'success');
         } else {
-            showToast('📱 Saved locally (will sync later)', 'offline');
+            console.error('Apps Script returned error:', result.error);
+            showToast('❌ Server error: ' + (result.error || 'Unknown'), 'error');
+            // Exam remains unsynced
         }
     } catch (error) {
         console.error('Online sync error:', error);
@@ -783,7 +799,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 } else {
     showToast('📱 Saved offline (will sync when online)', 'offline');
 }
-
+      
         // Reset form and go back to search mode
         e.target.reset();
         resetTeeth();
