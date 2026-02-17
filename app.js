@@ -480,7 +480,7 @@ window.loadExam = function(exam) {
     }
 };
 
-// ==================== DENTAL EXAM SAVE (FIXED FORMAT) ====================
+// ==================== DENTAL EXAM SAVE (FINAL FIX) ====================
 document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!currentStudentId) {
@@ -490,57 +490,57 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
     // Format date properly (DD/MM/YYYY)
     let formattedDob = currentStudent.dob;
-    if (currentStudent.dob instanceof Date) {
-        const day = String(currentStudent.dob.getDate()).padStart(2, '0');
-        const month = String(currentStudent.dob.getMonth() + 1).padStart(2, '0');
-        const year = currentStudent.dob.getFullYear();
-        formattedDob = `${day}/${month}/${year}`;
-    } else if (currentStudent.dob && currentStudent.dob.includes('GMT')) {
-        const date = new Date(currentStudent.dob);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
-        formattedDob = `${day}/${month}/${year}`;
+    if (currentStudent.dob) {
+        if (currentStudent.dob instanceof Date) {
+            const day = String(currentStudent.dob.getDate()).padStart(2, '0');
+            const month = String(currentStudent.dob.getMonth() + 1).padStart(2, '0');
+            const year = currentStudent.dob.getFullYear();
+            formattedDob = `${day}/${month}/${year}`;
+        } else if (typeof currentStudent.dob === 'string' && currentStudent.dob.includes('GMT')) {
+            const date = new Date(currentStudent.dob);
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            formattedDob = `${day}/${month}/${year}`;
+        }
     }
 
+    // Use the SIMPLE keys that Apps Script expects
     const fullRecord = {
-        // Basic Info - match exact column headers
-        'Complete Name of Pupil / Kumpletong Ngalan ng Mag-aaral:': currentStudent.name || '',
-        'Sex / Kasarian': currentStudent.sex || '',
-        'Age / Edad': currentStudent.age || '',
-        'Date of Birth / Petsa ng kapanganakan': formattedDob,
-        'Address / Tirahan': currentStudent.address || '',
-        'School / Paaralan': currentStudent.school || '',
-        'Name of Parent/Guardian / Ngalan ng Magulang/Tagapag-alaga:': currentStudent.parentName || '',
-        'Contact Number / Numero ng Telepono:': currentStudent.contactNumber || '',
-        'Systemic Conditions / Sistemikong karamdaman': currentStudent.systemicConditions || '',
-        'Allergies (Food & Environment) / Allergy (Pagkain at Kapaligiran)': currentStudent.allergiesFood || '',
-        'Allergies (Medicines) / Allergy (Mga Gamot)': currentStudent.allergiesMedicines || '',
+        // Basic Info
+        completeName: currentStudent.name || '',
+        sex: currentStudent.sex || '',
+        age: currentStudent.age || '',
+        dob: formattedDob,
+        address: currentStudent.address || '',
+        school: currentStudent.school || '',
+        parentName: currentStudent.parentName || '',
+        contactNumber: currentStudent.contactNumber || '',
+        systemicConditions: currentStudent.systemicConditions || '',
+        allergiesFood: currentStudent.allergiesFood || '',
+        allergiesMedicines: currentStudent.allergiesMedicines || '',
         
         // Dental fields
-        'Do you have a toothbrush? / Mayroon ka bang sipilyo?': '',
-        'How many times do you brush your teeth? / Ilang beses ka magsipilyo': '',
-        'How many times do you change your toothbrush in a year? / Ilang beses ka magpalit ng sipilyo sa isang taon?': '',
-        'Do you use toothpaste in brushing? / Gumagamit ka ba ng toothpaste kapag nagsisipilyo?': '',
-        'How many times do you visit the dentist in a year? / Ilang beses ka pumunta sa dentista sa isang taon?': '',
-        'Oral Exam (Notes) / Pagsusuri sa Ngipin (Mga Tala)': document.getElementById('oralNotes')?.value || '',
+        toothExtraction: document.getElementById('toothExtraction')?.value || '',
+        toothFilling: document.getElementById('toothFilling')?.value || '',
+        cleaning: document.getElementById('toothCleaning')?.value || '',
+        fluoride: document.getElementById('fluoride')?.value || '',
+        dentalConsultations: document.getElementById('dentalConsult')?.value || '',
+        severeCavities: document.getElementById('severeCavities')?.value || '',
+        oralExamNotes: document.getElementById('oralNotes')?.value || '',
+        cleaningNotes: document.getElementById('cleaningNotes')?.value || '',
+        remarks: document.getElementById('remarks')?.value || '',
         
-        // FDI fields
-        'Tooth Extraction (enter the tooth using FDI numbering system, separate by commas)/ Pagbunot ng Ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)': 
-            document.getElementById('toothExtraction')?.value || '',
-        'Tooth Filling (enter the tooth using FDI numbering system, separate by commas)/Pagpasta ng Ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)': 
-            document.getElementById('toothFilling')?.value || '',
-        'Cleaning (enter the tooth using FDI numbering system, separate by commas) / Paglilinis (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)': 
-            document.getElementById('toothCleaning')?.value || '',
-        'Cleaning (Notes) / Paglilinis (Mga Tala)': document.getElementById('cleaningNotes')?.value || '',
-        'Fluoride': document.getElementById('fluoride')?.value || '',
-        'Dental Consultations/Konsultasyon sa Ngipin': document.getElementById('dentalConsult')?.value || '',
-        'Severe Childhood Cavities/Malubhang Karies sa Bata': document.getElementById('severeCavities')?.value || '',
-        'Dental Procedures/Mga Pamamaraan sa Ngipin': '',
-        'Remarks: / Mga Puna:': document.getElementById('remarks')?.value || ''
+        // Empty fields
+        hasToothbrush: '',
+        brushFrequency: '',
+        toothbrushChanges: '',
+        usesToothpaste: '',
+        dentalVisits: '',
+        dentalProcedures: ''
     };
 
-    console.log('SENDING TO APPS SCRIPT:', fullRecord);
+    console.log('SENDING SIMPLE KEYS:', JSON.stringify(fullRecord, null, 2));
 
     try {
         const formData = new FormData();
@@ -553,27 +553,23 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         });
 
         const responseText = await response.text();
-        console.log('RAW RESPONSE:', responseText);
+        console.log('RESPONSE:', responseText);
 
-        try {
-            const result = JSON.parse(responseText);
-            if (result.success) {
-                alert('✅ Saved! Check your Google Sheet');
-                e.target.reset();
-                resetTeeth();
-                loadPreviousExams(currentStudentId);
-            } else {
-                alert('❌ Error: ' + (result.error || 'Unknown error'));
-            }
-        } catch (e) {
-            console.error('Could not parse response as JSON:', responseText);
-            alert('Server returned non-JSON response. Check console.');
+        const result = JSON.parse(responseText);
+        if (result.success) {
+            alert('✅ Saved to Google Sheet!');
+            e.target.reset();
+            resetTeeth();
+            loadPreviousExams(currentStudentId);
+        } else {
+            alert('❌ Error: ' + (result.error || 'Unknown error'));
         }
     } catch (error) {
-        console.error('FETCH ERROR:', error);
-        alert('Network error: ' + error.message);
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
     }
 });
+
 // ==================== UI HELPERS ====================
 function switchTab(num) {
     document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===num-1));
