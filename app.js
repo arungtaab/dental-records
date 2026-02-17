@@ -441,9 +441,14 @@ function displayConsolidatedInfo(record) {
         resetTeeth();
     }
 
+    // Ensure selectedStudentName exists
+    const selectedNameEl = document.getElementById('selectedStudentName');
+    if (selectedNameEl) {
+        selectedNameEl.textContent = record.name || record.completeName || 'Unknown';
+    }
+
     document.getElementById('studentInfo')?.classList.remove('hidden');
     document.getElementById('studentForm')?.classList.remove('hidden');
-    document.getElementById('selectedStudentName').textContent = record.name || record.completeName || 'Unknown';
 }
 
 function displayPreviousExams(exams) {
@@ -526,7 +531,11 @@ async function saveStudentToLocal(studentData) {
         await store.put(studentData);
         return studentData;
     } else {
-        const id = await store.add(studentData);
+        const id = await new Promise((res, rej) => {
+            const req = store.add(studentData);
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        });
         studentData.id = id;
         return studentData;
     }
@@ -587,7 +596,11 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
         const tx = db.transaction('exams', 'readwrite');
         const store = tx.objectStore('exams');
-        const examId = await store.add(exam);
+        const examId = await new Promise((res, rej) => {
+            const req = store.add(exam);
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        });
         console.log('Exam saved locally with ID', examId);
 
         if (navigator.onLine) {
@@ -644,7 +657,8 @@ window.newStudent = function() {
         });
     document.getElementById('studentForm')?.classList.remove('hidden');
     document.getElementById('studentInfo')?.classList.add('hidden');
-    document.getElementById('selectedStudentName').textContent = 'New Student';
+    const selectedNameEl = document.getElementById('selectedStudentName');
+    if (selectedNameEl) selectedNameEl.textContent = 'New Student';
     currentStudent = null;
     currentStudentId = null;
     resetTeeth();
@@ -681,7 +695,11 @@ window.saveStudentInfo = async function() {
         await store.put(student);
         currentStudent = student;
     } else {
-        const id = await store.add(student);
+        const id = await new Promise((res, rej) => {
+            const req = store.add(student);
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        });
         student.id = id;
         currentStudent = student;
         currentStudentId = id;
