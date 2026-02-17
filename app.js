@@ -137,9 +137,17 @@ async function cacheAllRecords() {
 
         await openDB();
 
+        // First, get all existing students to compare
+        const allStudents = await new Promise((res, rej) => {
+            const tx = db.transaction('students', 'readonly');
+            const store = tx.objectStore('students');
+            const req = store.getAll();
+            req.onsuccess = () => res(req.result);
+            req.onerror = () => rej(req.error);
+        });
+
         // Group records by student (name + dob + school)
-        const studentMap = new Map(); // key -> studentData
-        const examMap = new Map();    // studentKey -> array of exam records
+        const studentGroups = new Map(); // key -> { studentData, exams: [] }
 
         for (const row of result.records) {
             const name = row['Complete Name of Pupil / Kumpletong Ngalan ng Mag-aaral:'] || '';
@@ -149,46 +157,37 @@ async function cacheAllRecords() {
 
             const studentKey = `${name}|${dobRaw}|${school}`;
 
-            // Prepare student data (use first occurrence as baseline)
-            if (!studentMap.has(studentKey)) {
-                studentMap.set(studentKey, {
-                    name,
-                    sex: row['Sex / Kasarian'] || '',
-                    age: row['Age / Edad'] || '',
-                    dob: formatDateForDisplay(dobRaw),
-                    address: row['Address / Tirahan'] || '',
-                    school,
-                    parentName: row['Name of Parent/Guardian / Ngalan ng Magulang/Tagapag-alaga:'] || '',
-                    contactNumber: row['Contact Number / Numero ng Telepono:'] || '',
-                    systemicConditions: row['Systemic Conditions / Sistemikong karamdaman'] || '',
-                    allergiesFood: row['Allergies (Food & Environment) / Allergy (Pagkain at Kapaligiran)'] || '',
-                    allergiesMedicines: row['Allergies (Medicines) / Allergy (Mga Gamot)'] || ''
+            if (!studentGroups.has(studentKey)) {
+                studentGroups.set(studentKey, {
+                    studentData: {
+                        name,
+                        sex: row['Sex / Kasarian'] || '',
+                        age: row['Age / Edad'] || '',
+                        dob: formatDateForDisplay(dobRaw),
+                        address: row['Address / Tirahan'] || '',
+                        school,
+                        parentName: row['Name of Parent/Guardian / Ngalan ng Magulang/Tagapag-alaga:'] || '',
+                        contactNumber: row['Contact Number / Numero ng Telepono:'] || '',
+                        systemicConditions: row['Systemic Conditions / Sistemikong karamdaman'] || '',
+                        allergiesFood: row['Allergies (Food & Environment) / Allergy (Pagkain at Kapaligiran)'] || '',
+                        allergiesMedicines: row['Allergies (Medicines) / Allergy (Mga Gamot)'] || ''
+                    },
+                    exams: []
                 });
             }
-
-            // Collect exam data
-            if (!examMap.has(studentKey)) examMap.set(studentKey, []);
-            examMap.get(studentKey).push({
+            studentGroups.get(studentKey).exams.push({
                 date: row['Timestamp'] || new Date().toISOString(),
                 data: row,
                 synced: true
             });
         }
 
-        // Save students and their exams
-        const studentTx = db.transaction('students', 'readwrite');
-        const studentStore = studentTx.objectStore('students');
-        const examTx = db.transaction('exams', 'readwrite');
-        const examStore = examTx.objectStore('exams');
+        // Process each student group
+        for (const [studentKey, group] of studentGroups.entries()) {
+            const studentData = group.studentData;
+            const exams = group.exams;
 
-        for (const [studentKey, studentData] of studentMap.entries()) {
-            // Check if student exists
-            const index = studentStore.index('name'); // we need to search by name+dob+school
-            const allStudents = await new Promise((res, rej) => {
-                const req = studentStore.getAll();
-                req.onsuccess = () => res(req.result);
-                req.onerror = () => rej(req.error);
-            });
+            // Find if student already exists
             const existing = allStudents.find(s =>
                 s.name === studentData.name &&
                 s.dob === studentData.dob &&
@@ -197,41 +196,51 @@ async function cacheAllRecords() {
 
             let studentId;
             if (existing) {
-                studentData.id = existing.id;
+                studentId = existing.id;
+                // Update student if needed (optional)
+                const updateTx = db.transaction('students', 'readwrite');
+                const updateStore = updateTx.objectStore('students');
+                studentData.id = studentId;
                 await new Promise((res, rej) => {
-                    const req = studentStore.put(studentData);
+                    const req = updateStore.put(studentData);
                     req.onsuccess = () => res();
                     req.onerror = () => rej(req.error);
                 });
-                studentId = existing.id;
             } else {
+                const addTx = db.transaction('students', 'readwrite');
+                const addStore = addTx.objectStore('students');
                 studentId = await new Promise((res, rej) => {
-                    const req = studentStore.add(studentData);
+                    const req = addStore.add(studentData);
                     req.onsuccess = () => res(req.result);
                     req.onerror = () => rej(req.error);
                 });
             }
 
-            // Save exams for this student
-            const exams = examMap.get(studentKey) || [];
+            // Get existing exams for this student to avoid duplicates
+            const existingExams = await new Promise((res, rej) => {
+                const tx = db.transaction('exams', 'readonly');
+                const store = tx.objectStore('exams');
+                const index = store.index('studentId');
+                const req = index.getAll(studentId);
+                req.onsuccess = () => res(req.result);
+                req.onerror = () => rej(req.error);
+            });
+
+            const existingExamDates = new Set(existingExams.map(e => e.date));
+
+            // Add new exams
             for (const exam of exams) {
-                // Check if exam already exists (by date)
-                const index = examStore.index('date');
-                const existingExams = await new Promise((res, rej) => {
-                    const req = index.getAll(exam.date);
-                    req.onsuccess = () => res(req.result);
-                    req.onerror = () => rej(req.error);
-                });
-                const alreadyExists = existingExams.some(e => e.studentId === studentId && e.date === exam.date);
-                if (!alreadyExists) {
+                if (!existingExamDates.has(exam.date)) {
                     const examRecord = {
                         studentId,
                         date: exam.date,
                         data: exam.data,
                         synced: true
                     };
+                    const addTx = db.transaction('exams', 'readwrite');
+                    const addStore = addTx.objectStore('exams');
                     await new Promise((res, rej) => {
-                        const req = examStore.add(examRecord);
+                        const req = addStore.add(examRecord);
                         req.onsuccess = () => res();
                         req.onerror = () => rej(req.error);
                     });
