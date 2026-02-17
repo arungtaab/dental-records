@@ -205,7 +205,7 @@ function resetTeeth() {
     updateToothFields();
 }
 
-// ==================== SEARCH FUNCTION ====================
+// ==================== SEARCH FUNCTION (consolidates student + latest exam) ====================
 window.searchStudent = async function() {
     console.log('=== SEARCH FUNCTION STARTED ===');
     const name = document.getElementById('searchName')?.value.trim() || '';
@@ -228,7 +228,7 @@ window.searchStudent = async function() {
     try {
         await openDB();
 
-        // Try online search first
+        // Try online search first if online
         if (navigator.onLine) {
             try {
                 const formData = new FormData();
@@ -247,12 +247,15 @@ window.searchStudent = async function() {
                     const sortedRecords = result.records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = sortedRecords[0];
 
-                    // Update or create student in local DB
+                    // --- FIX: Format the date to DD/MM/YYYY before storing ---
+                    const formattedDob = formatDateForDisplay(latestRecord.dob);
+
+                    // Prepare student data with formatted DOB
                     const studentData = {
                         name: latestRecord.completeName,
                         sex: latestRecord.sex,
                         age: latestRecord.age,
-                        dob: latestRecord.dob,
+                        dob: formattedDob,          // <-- use formatted date
                         address: latestRecord.address,
                         school: latestRecord.school,
                         parentName: latestRecord.parentName,
@@ -261,6 +264,8 @@ window.searchStudent = async function() {
                         allergiesFood: latestRecord.allergiesFood,
                         allergiesMedicines: latestRecord.allergiesMedicines
                     };
+
+                    // Save student to local DB and get the saved object (with ID)
                     const savedStudent = await saveStudentToLocal(studentData);
                     currentStudent = savedStudent;
                     currentStudentId = savedStudent.id;
@@ -272,20 +277,21 @@ window.searchStudent = async function() {
                         // Check if this exam already exists locally (by date and studentId)
                         const existing = await findExamByDate(currentStudentId, record.timestamp);
                         if (!existing) {
-                            // Create an exam record with synced = true (since it came from server)
+                            // For the exam data, also format the dob for consistency
+                            const examData = { ...record, dob: formatDateForDisplay(record.dob) };
                             const exam = {
                                 studentId: currentStudentId,
                                 date: record.timestamp,
-                                data: record, // store the whole row for later display
+                                data: examData,
                                 synced: true
                             };
                             await examStore.add(exam);
                         }
                     }
 
-                    // Now load all exams for this student (including those just added)
+                    // Load all exams for this student (including those just added)
                     const allExams = await getExamsForStudent(currentStudentId);
-                    // Display the most recent record
+                    // Display the most recent record (use formatted dob)
                     const latestExam = allExams.length > 0 ? { ...savedStudent, ...allExams[0].data } : savedStudent;
                     displayConsolidatedInfo(latestExam);
                     if (allExams.length > 1) {
@@ -310,6 +316,7 @@ window.searchStudent = async function() {
             req.onerror = () => res([]);
         });
 
+        // Find matching student (dob is already DD/MM/YYYY in local store)
         const student = all.find(s =>
             s.name?.toLowerCase() === name.toLowerCase() &&
             s.dob === dob &&
@@ -661,7 +668,7 @@ window.saveStudentInfo = async function() {
     showToast('✅ Student saved', 'success');
     // Optionally sync student info? Not needed now; exams carry static info.
 };
-
+window.saveStudentInfo = saveStudentInfo;
 // ==================== UI HELPERS ====================
 function switchTab(num) {
     document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===num-1));
