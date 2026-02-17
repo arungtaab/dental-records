@@ -168,15 +168,21 @@ function updateToothFields() {
 
     Object.entries(toothStatus).forEach(([tooth, status]) => {
         if (status === 'X') toothCategories.extraction.push(tooth);
-        if (status === 'F' || status === 'O') toothCategories.filling.push(tooth);
-        if (status === 'O') toothCategories.decayed.push(tooth);
+        if (status === 'F') toothCategories.filling.push(tooth);      // only filled
+        if (status === 'O') toothCategories.decayed.push(tooth);      // only decayed
         if (status === 'M') toothCategories.missing.push(tooth);
     });
 
-    document.getElementById('toothExtraction').value = toothCategories.extraction.join(', ');
-    document.getElementById('toothFilling').value = toothCategories.filling.join(', ');
-    document.getElementById('toothDecayed').value = toothCategories.decayed.join(', ');
-    document.getElementById('toothMissing').value = toothCategories.missing.join(', ');
+    // Update the input fields
+    const extractionField = document.getElementById('toothExtraction');
+    const fillingField = document.getElementById('toothFilling');
+    const decayedField = document.getElementById('toothDecayed');
+    const missingField = document.getElementById('toothMissing');
+
+    if (extractionField) extractionField.value = toothCategories.extraction.join(', ');
+    if (fillingField) fillingField.value = toothCategories.filling.join(', ');
+    if (decayedField) decayedField.value = toothCategories.decayed.join(', ');
+    if (missingField) missingField.value = toothCategories.missing.join(', ');
 }
 
 function populateTeeth() {
@@ -412,7 +418,8 @@ function displayConsolidatedInfo(record) {
     setValue('toothExtraction', record.toothExtraction);
     setValue('toothFilling', record.toothFilling);
     setValue('toothDecayed', record.toothDecayed);
-    setValue('toothMissing', record.toothMissing); setValue('fluoride', record.fluoride);
+    setValue('toothMissing', record.toothMissing); 
+    setValue('fluoride', record.fluoride);
     setValue('dentalConsult', record.dentalConsultations);
     setValue('severeCavities', record.severeCavities);
     setValue('oralNotes', record.oralExamNotes);
@@ -551,12 +558,6 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         extractionNotes: document.getElementById('extractionNotes')?.value || '',
         fillingNotes: document.getElementById('fillingNotes')?.value || '',
 
-        hasToothbrush: '',
-        brushFrequency: '',
-        toothbrushChanges: '',
-        usesToothpaste: '',
-        dentalVisits: '',
-        dentalProcedures: ''
     };
 
     try {
@@ -644,6 +645,9 @@ window.saveStudentInfo = async function () {
     await openDB();
     const tx = db.transaction('students', 'readwrite');
     const store = tx.objectStore('students');
+    
+    const wasNew = !currentStudentId; // true if this is a new student
+
     if (currentStudentId) {
         student.id = currentStudentId;
         await store.put(student);
@@ -656,8 +660,63 @@ window.saveStudentInfo = async function () {
     }
     displayConsolidatedInfo(student);
     showToast('✅ Student saved', 'success');
-};
 
+    // If this is a new student, create an empty exam record
+    if (wasNew) {
+        // Build an empty exam data object with all dental fields empty
+        const emptyExamData = {
+            completeName: student.name,
+            sex: student.sex,
+            age: student.age,
+            dob: student.dob,
+            address: student.address,
+            school: student.school,
+            parentName: student.parentName,
+            contactNumber: student.contactNumber,
+            systemicConditions: student.systemicConditions,
+            allergiesFood: student.allergiesFood,
+            allergiesMedicines: student.allergiesMedicines,
+            // Dental fields (all empty)
+            oralExamNotes: '',
+            toothExtraction: '',
+            toothFilling: '',
+            toothDecayed: '',
+            toothMissing: '',
+            cleaningNotes: '',
+            fluoride: '',
+            dentalConsultations: '',
+            severeCavities: '',
+            dentalProcedures: '',
+            remarks: '',
+            extractionNotes: '',
+            fillingNotes: '',
+            // We also store the empty tooth chart as JSON (optional but good for consistency)
+            toothData: JSON.stringify({})
+        };
+
+        const emptyExam = {
+            studentId: student.id,
+            date: new Date().toISOString(),
+            data: emptyExamData,
+            synced: false
+        };
+
+        // Save exam locally
+        const examTx = db.transaction('exams', 'readwrite');
+        const examStore = examTx.objectStore('exams');
+        await examStore.add(emptyExam);
+
+        // Refresh previous exams list
+        loadPreviousExams(student.id);
+
+        // Sync if online
+        if (navigator.onLine) {
+            syncUnsyncedExams();
+        }
+
+        showToast('📄 Initial exam record created', 'info');
+    }
+};
 // ==================== UI HELPERS ====================
 function switchTab(num) {
     document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === num - 1));
