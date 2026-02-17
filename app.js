@@ -37,18 +37,15 @@ async function openDB() {
             console.log('Upgrading database from', event.oldVersion, 'to', event.newVersion);
             Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
 
-            // students store
             const studentStore = db.createObjectStore('students', { keyPath: 'id', autoIncrement: true });
             studentStore.createIndex('name', 'name', { unique: false });
             studentStore.createIndex('dob', 'dob', { unique: false });
             studentStore.createIndex('school', 'school', { unique: false });
 
-            // exams store (dental records)
             const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
             examStore.createIndex('studentId', 'studentId', { unique: false });
             examStore.createIndex('date', 'date', { unique: false });
 
-            // pending sync store
             db.createObjectStore('pending', { keyPath: 'id', autoIncrement: true });
             console.log('Database stores created');
         };
@@ -129,7 +126,11 @@ async function syncWithGoogleSheets() {
             if (res.ok) {
                 await deletePending(item.id);
                 success++;
-            } else fail++;
+            } else {
+                const errText = await res.text();
+                console.error('Sync error response:', errText);
+                fail++;
+            }
         } catch (e) {
             console.error(e);
             fail++;
@@ -279,7 +280,6 @@ window.searchStudent = async function() {
 
             if (result.success && result.found && result.records.length) {
                 const onlineStudent = result.records[0];
-                // Convert to our format and save locally
                 const localStudent = {
                     name: onlineStudent.completeName,
                     sex: onlineStudent.sex,
@@ -294,7 +294,6 @@ window.searchStudent = async function() {
                     allergiesMedicines: onlineStudent.allergiesMedicines,
                     lastUpdated: new Date().toISOString()
                 };
-                // Save to IndexedDB
                 const addTx = db.transaction('students', 'readwrite');
                 const addStore = addTx.objectStore('students');
                 const id = await new Promise((res, rej) => {
@@ -306,7 +305,6 @@ window.searchStudent = async function() {
                 currentStudent = localStudent;
                 currentStudentId = id;
                 displayStudentInfo(localStudent);
-                // Optionally load online exams? Not implemented yet.
                 showStatus('searchStatus', '✅ Student found online and cached', 'success');
                 loading?.classList.add('hidden');
                 return;
@@ -345,7 +343,6 @@ function displayStudentInfo(s) {
     setText('displayFoodAllergy', s.allergiesFood || 'None');
     setText('displayMedAllergy', s.allergiesMedicines || 'None');
 
-    // fill edit form
     const setValue = (id, val) => {
         const el = document.getElementById(id);
         if (el) el.value = val || '';
@@ -511,6 +508,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
     };
 
     // Merge with static student info to create a full record for Google Sheets
+    // using the exact field names expected by the Apps Script
     const fullRecord = {
         // Static fields from currentStudent
         completeName: currentStudent.name,
@@ -525,19 +523,33 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         allergiesFood: currentStudent.allergiesFood,
         allergiesMedicines: currentStudent.allergiesMedicines,
 
-        // Exam fields (will map to the corresponding columns)
+        // Hygiene fields (not collected in exam form, set to empty)
+        hasToothbrush: '',
+        brushFrequency: '',
+        toothbrushChanges: '',
+        usesToothpaste: '',
+        dentalVisits: '',
+
+        // Exam fields (mapped to correct keys)
         toothExtraction: exam.toothExtraction,
         toothFilling: exam.toothFilling,
-        toothCleaning: exam.toothCleaning,
+        cleaning: exam.toothCleaning,          // critical: use 'cleaning' not 'toothCleaning'
         fluoride: exam.fluoride,
-        dentalConsultations: exam.dentalConsult,      // match column name
+        dentalConsultations: exam.dentalConsult,
         severeCavities: exam.severeCavities,
-        oralExamNotes: exam.oralNotes,                // match column name
+        oralExamNotes: exam.oralNotes,
         cleaningNotes: exam.cleaningNotes,
         remarks: exam.remarks,
-        // Additional hygiene fields could be added here if you collect them
-        // hasToothbrush: ..., brushFrequency: ..., etc.
+
+        // Additional notes (optional, not in sheet but kept for local)
+        extractionNotes: exam.extractionNotes,
+        fillingNotes: exam.fillingNotes,
+
+        // Dental procedures (optional)
+        dentalProcedures: ''
     };
+
+    console.log('Saving full record:', fullRecord); // for debugging
 
     // Save exam locally for history
     await openDB();
