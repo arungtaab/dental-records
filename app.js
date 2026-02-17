@@ -217,7 +217,6 @@ function resetTeeth() {
     updateToothFields();
 }
 
-// ==================== STUDENT SEARCH (with online fallback) ====================
 // ==================== SEARCH FUNCTION (consolidates student + latest exam) ====================
 window.searchStudent = async function() {
     console.log('=== SEARCH FUNCTION STARTED ===');
@@ -257,23 +256,62 @@ window.searchStudent = async function() {
                 const result = await response.json();
 
                 if (result.success && result.found && result.records.length > 0) {
-                    console.log('Found student online:', result.records[0]);
-                    
-                    // Get the most recent record (first in array)
-                    const latestRecord = result.records[0];
-                    
-                    // Display consolidated info
-                    displayConsolidatedInfo(latestRecord);
-                    
-                    // Save to local DB for offline use
-                    await saveStudentToLocal(latestRecord);
-                    
-                    // Load all previous exams for this student
-                    if (result.records.length > 1) {
-                        displayPreviousExams(result.records.slice(1));
+                    console.log('Found student online:', result.records);
+
+                    // Sort records by timestamp descending (most recent first)
+                    const sortedRecords = result.records.sort((a, b) => {
+                        return new Date(b.timestamp) - new Date(a.timestamp);
+                    });
+
+                    // Get the most recent record
+                    const latestRecord = sortedRecords[0];
+
+                    // Prepare student data for local storage (using 'name' field)
+                    const studentData = {
+                        name: latestRecord.completeName,
+                        sex: latestRecord.sex,
+                        age: latestRecord.age,
+                        dob: latestRecord.dob,
+                        address: latestRecord.address,
+                        school: latestRecord.school,
+                        parentName: latestRecord.parentName,
+                        contactNumber: latestRecord.contactNumber,
+                        systemicConditions: latestRecord.systemicConditions,
+                        allergiesFood: latestRecord.allergiesFood,
+                        allergiesMedicines: latestRecord.allergiesMedicines
+                    };
+
+                    // Save student to local DB and get the saved object (with ID)
+                    const savedStudent = await saveStudentToLocal(studentData);
+
+                    // Merge with any exam data from the latest record (if present)
+                    const consolidatedRecord = {
+                        ...savedStudent,
+                        toothExtraction: latestRecord.toothExtraction || '',
+                        toothFilling: latestRecord.toothFilling || '',
+                        cleaning: latestRecord.cleaning || '',
+                        fluoride: latestRecord.fluoride || '',
+                        dentalConsultations: latestRecord.dentalConsultations || '',
+                        severeCavities: latestRecord.severeCavities || '',
+                        oralExamNotes: latestRecord.oralExamNotes || '',
+                        cleaningNotes: latestRecord.cleaningNotes || '',
+                        remarks: latestRecord.remarks || ''
+                    };
+
+                    // Display the consolidated info
+                    displayConsolidatedInfo(consolidatedRecord);
+
+                    // Set current student to the saved student (has real ID)
+                    currentStudent = savedStudent;
+                    currentStudentId = savedStudent.id;
+
+                    // Show previous visits if any (excluding the most recent)
+                    if (sortedRecords.length > 1) {
+                        // Convert previous records to a format that can be displayed (optional)
+                        displayPreviousExams(sortedRecords.slice(1));
                     }
-                    
-                    showStatus('searchStatus', `✅ Found ${result.records.length} visit(s)`, 'success');
+
+                    showStatus('searchStatus', `✅ Found ${sortedRecords.length} visit(s)`, 'success');
                     loading?.classList.add('hidden');
                     return;
                 }
@@ -282,7 +320,7 @@ window.searchStudent = async function() {
             }
         }
 
-        // Try local search
+        // Try local search (offline or if online search failed)
         const tx = db.transaction('students', 'readonly');
         const store = tx.objectStore('students');
         const all = await new Promise(res => {
@@ -300,7 +338,7 @@ window.searchStudent = async function() {
 
         if (student) {
             console.log('Found student locally:', student);
-            
+
             // Get their latest exam
             const examTx = db.transaction('exams', 'readonly');
             const examStore = examTx.objectStore('exams');
@@ -321,11 +359,12 @@ window.searchStudent = async function() {
             };
 
             displayConsolidatedInfo(consolidated);
-            
+            currentStudent = student;
+            currentStudentId = student.id;
+
             if (exams.length > 1) {
                 displayPreviousExams(exams.slice(1));
-            } else if (exams.length === 1) {
-                // If there's exactly one exam, we already showed it
+            } else {
                 document.getElementById('previousRecords')?.classList.add('hidden');
             }
 
@@ -353,7 +392,7 @@ window.searchStudent = async function() {
 // Helper function to display consolidated info
 function displayConsolidatedInfo(record) {
     // Display student info
-    document.getElementById('displayName').textContent = record.completeName || record.name || '';
+    document.getElementById('displayName').textContent = record.name || record.completeName || '';
     document.getElementById('displayDob').textContent = record.dob || '';
     document.getElementById('displaySchool').textContent = record.school || '';
     document.getElementById('displayParent').textContent = record.parentName || '';
@@ -363,7 +402,7 @@ function displayConsolidatedInfo(record) {
     document.getElementById('displayMedAllergy').textContent = record.allergiesMedicines || 'None';
 
     // Fill edit form
-    document.getElementById('editName').value = record.completeName || record.name || '';
+    document.getElementById('editName').value = record.name || record.completeName || '';
     document.getElementById('editSex').value = record.sex || '';
     document.getElementById('editAge').value = record.age || '';
     document.getElementById('editDob').value = record.dob || '';
@@ -398,16 +437,15 @@ function displayConsolidatedInfo(record) {
             }
         });
         updateToothFields();
+    } else {
+        // Reset teeth to normal if no tooth data
+        resetTeeth();
     }
-
-    // Set current student
-    currentStudent = record;
-    currentStudentId = record.id;
 
     // Show the sections
     document.getElementById('studentInfo')?.classList.remove('hidden');
     document.getElementById('studentForm')?.classList.remove('hidden');
-    document.getElementById('selectedStudentName').textContent = record.completeName || record.name || 'Unknown';
+    document.getElementById('selectedStudentName').textContent = record.name || record.completeName || 'Unknown';
 }
 
 // Helper to display previous exams
@@ -417,23 +455,56 @@ function displayPreviousExams(exams) {
     
     if (!container || !prevDiv || !exams.length) return;
     
-    container.innerHTML = exams.map(exam => `
-        <div class="record-item" onclick='loadExam(${JSON.stringify(exam).replace(/'/g, "&#39;")})'>
-            <div class="record-date">${new Date(exam.date).toLocaleDateString()}</div>
-            <div>Extraction: ${exam.toothExtraction || '—'}</div>
-            <div>Filling: ${exam.toothFilling || '—'}</div>
-        </div>
-    `).join('');
+    container.innerHTML = exams.map(exam => {
+        // Escape the exam object for safe onclick
+        const examStr = JSON.stringify(exam).replace(/'/g, "&#39;");
+        return `
+            <div class="record-item" onclick='loadExam(${examStr})'>
+                <div class="record-date">${new Date(exam.date).toLocaleDateString()}</div>
+                <div>Extraction: ${exam.toothExtraction || '—'}</div>
+                <div>Filling: ${exam.toothFilling || '—'}</div>
+            </div>
+        `;
+    }).join('');
     
     prevDiv.classList.remove('hidden');
 }
 
-// Helper to save student to local DB
+// Helper to load a previous exam
+window.loadExam = function(exam) {
+    if (confirm('Load this previous exam? Current unsaved data will be lost.')) {
+        document.getElementById('toothExtraction').value = exam.toothExtraction || '';
+        document.getElementById('toothFilling').value = exam.toothFilling || '';
+        document.getElementById('toothCleaning').value = exam.cleaning || '';
+        document.getElementById('fluoride').value = exam.fluoride || '';
+        document.getElementById('dentalConsult').value = exam.dentalConsult || '';
+        document.getElementById('severeCavities').value = exam.severeCavities || '';
+        document.getElementById('oralNotes').value = exam.oralNotes || '';
+        document.getElementById('cleaningNotes').value = exam.cleaningNotes || '';
+        document.getElementById('remarks').value = exam.remarks || '';
+
+        if (exam.toothData) {
+            Object.assign(toothStatus, exam.toothData);
+            document.querySelectorAll('.tooth-btn').forEach(btn => {
+                const tooth = btn.querySelector('.number')?.textContent;
+                if (tooth) {
+                    const status = toothStatus[tooth] || 'N';
+                    btn.className = `tooth-btn ${getStatusClass(status)}`;
+                    btn.querySelector('.status').textContent = status;
+                }
+            });
+            updateToothFields();
+        }
+        showToast('Loaded previous exam', 'success');
+    }
+};
+
+// Helper to save student to local DB and return the saved object (with ID)
 async function saveStudentToLocal(record) {
     try {
         await openDB();
         const student = {
-            name: record.completeName,
+            name: record.name || record.completeName,
             sex: record.sex,
             age: record.age,
             dob: record.dob,
@@ -446,34 +517,42 @@ async function saveStudentToLocal(record) {
             allergiesMedicines: record.allergiesMedicines,
             lastUpdated: new Date().toISOString()
         };
-        
+
         const tx = db.transaction('students', 'readwrite');
         const store = tx.objectStore('students');
-        
-        // Check if student exists
+
+        // Check if student already exists (by name, dob, school)
         const all = await new Promise(res => {
             const req = store.getAll();
             req.onsuccess = () => res(req.result);
         });
-        
-        const existing = all.find(s => 
-            s.name === student.name && 
-            s.dob === student.dob && 
+
+        const existing = all.find(s =>
+            s.name === student.name &&
+            s.dob === student.dob &&
             s.school === student.school
         );
-        
+
         if (existing) {
+            // Update existing student
             student.id = existing.id;
             await store.put(student);
+            console.log('Updated existing student with ID:', student.id);
+            return student;
         } else {
-            await store.add(student);
+            // Add new student
+            const id = await store.add(student);
+            student.id = id;
+            console.log('Added new student with ID:', id);
+            return student;
         }
     } catch (e) {
         console.error('Error saving student locally:', e);
+        return null;
     }
 }
 
-// ==================== DENTAL EXAM SAVE (FINAL FIX) ====================
+// ==================== DENTAL EXAM SAVE ====================
 document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!currentStudentId) {
@@ -495,12 +574,13 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
             formattedDob = `${day}/${month}/${year}`;
+        } else {
+            formattedDob = currentStudent.dob; // assume it's already correct
         }
     }
 
-    // Use the SIMPLE keys that Apps Script expects
+    // Build the record with the keys Apps Script expects
     const fullRecord = {
-        // Basic Info
         completeName: currentStudent.name || '',
         sex: currentStudent.sex || '',
         age: currentStudent.age || '',
@@ -512,8 +592,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         systemicConditions: currentStudent.systemicConditions || '',
         allergiesFood: currentStudent.allergiesFood || '',
         allergiesMedicines: currentStudent.allergiesMedicines || '',
-        
-        // Dental fields
+
         toothExtraction: document.getElementById('toothExtraction')?.value || '',
         toothFilling: document.getElementById('toothFilling')?.value || '',
         cleaning: document.getElementById('toothCleaning')?.value || '',
@@ -523,8 +602,8 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         oralExamNotes: document.getElementById('oralNotes')?.value || '',
         cleaningNotes: document.getElementById('cleaningNotes')?.value || '',
         remarks: document.getElementById('remarks')?.value || '',
-        
-        // Empty fields
+
+        // Empty fields to match sheet columns
         hasToothbrush: '',
         brushFrequency: '',
         toothbrushChanges: '',
@@ -533,7 +612,7 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         dentalProcedures: ''
     };
 
-    console.log('SENDING SIMPLE KEYS:', JSON.stringify(fullRecord, null, 2));
+    console.log('SENDING TO APPS SCRIPT:', JSON.stringify(fullRecord, null, 2));
 
     try {
         const formData = new FormData();
@@ -553,6 +632,11 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
             alert('✅ Saved to Google Sheet!');
             e.target.reset();
             resetTeeth();
+
+            // Save exam locally for history
+            await saveExamLocally(currentStudentId, fullRecord);
+
+            // Refresh previous exams list
             loadPreviousExams(currentStudentId);
         } else {
             alert('❌ Error: ' + (result.error || 'Unknown error'));
@@ -562,6 +646,54 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         alert('Error: ' + error.message);
     }
 });
+
+// Helper to save exam locally
+async function saveExamLocally(studentId, examData) {
+    try {
+        await openDB();
+        const exam = {
+            studentId: studentId,
+            date: new Date().toISOString(),
+            toothExtraction: examData.toothExtraction,
+            toothFilling: examData.toothFilling,
+            cleaning: examData.cleaning,
+            fluoride: examData.fluoride,
+            dentalConsult: examData.dentalConsultations,
+            severeCavities: examData.severeCavities,
+            oralNotes: examData.oralExamNotes,
+            cleaningNotes: examData.cleaningNotes,
+            remarks: examData.remarks,
+            toothData: { ...toothStatus }
+        };
+        const tx = db.transaction('exams', 'readwrite');
+        const store = tx.objectStore('exams');
+        await store.add(exam);
+    } catch (e) {
+        console.error('Error saving exam locally:', e);
+    }
+}
+
+// Helper to load previous exams for a student
+async function loadPreviousExams(studentId) {
+    try {
+        await openDB();
+        const tx = db.transaction('exams', 'readonly');
+        const store = tx.objectStore('exams');
+        const index = store.index('studentId');
+        const exams = await new Promise(res => {
+            const req = index.getAll(studentId);
+            req.onsuccess = () => res(req.result);
+        });
+        exams.sort((a, b) => new Date(b.date) - new Date(a.date));
+        if (exams.length > 1) {
+            displayPreviousExams(exams.slice(1));
+        } else {
+            document.getElementById('previousRecords')?.classList.add('hidden');
+        }
+    } catch (e) {
+        console.error('Error loading previous exams:', e);
+    }
+}
 
 // ==================== UI HELPERS ====================
 function switchTab(num) {
@@ -632,4 +764,3 @@ window.addEventListener('load', async () => {
         navigator.serviceWorker.register('sw.js').catch(e => console.log('SW error', e));
     }
 });
-
