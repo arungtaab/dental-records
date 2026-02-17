@@ -480,67 +480,67 @@ window.loadExam = function(exam) {
     }
 };
 
-// ==================== DENTAL EXAM SAVE (FIXED) ====================
-// ==================== DENTAL EXAM SAVE (DEBUG VERSION) ====================
+// ==================== DENTAL EXAM SAVE (FIXED FORMAT) ====================
 document.getElementById('dentalExamForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     if (!currentStudentId) {
-        showToast('Please select a student first', 'error');
+        alert('Please select a student first');
         return;
     }
 
-    // Gather exam-specific fields
-    const exam = {
-        studentId: currentStudentId,
-        studentName: currentStudent?.name,
-        date: new Date().toISOString(),
-        toothExtraction: document.getElementById('toothExtraction')?.value || '',
-        toothFilling: document.getElementById('toothFilling')?.value || '',
-        toothCleaning: document.getElementById('toothCleaning')?.value || '',
-        fluoride: document.getElementById('fluoride')?.value || '',
-        dentalConsult: document.getElementById('dentalConsult')?.value || '',
-        severeCavities: document.getElementById('severeCavities')?.value || '',
-        oralNotes: document.getElementById('oralNotes')?.value || '',
-        cleaningNotes: document.getElementById('cleaningNotes')?.value || '',
-        extractionNotes: document.getElementById('extractionNotes')?.value || '',
-        fillingNotes: document.getElementById('fillingNotes')?.value || '',
-        remarks: document.getElementById('remarks')?.value || '',
-        toothData: { ...toothStatus }
-    };
+    // Format date properly (DD/MM/YYYY)
+    let formattedDob = currentStudent.dob;
+    if (currentStudent.dob instanceof Date) {
+        const day = String(currentStudent.dob.getDate()).padStart(2, '0');
+        const month = String(currentStudent.dob.getMonth() + 1).padStart(2, '0');
+        const year = currentStudent.dob.getFullYear();
+        formattedDob = `${day}/${month}/${year}`;
+    } else if (currentStudent.dob && currentStudent.dob.includes('GMT')) {
+        const date = new Date(currentStudent.dob);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        formattedDob = `${day}/${month}/${year}`;
+    }
 
-    // Merge with static student info to create a full record for Google Sheets
     const fullRecord = {
-        completeName: currentStudent.name,
-        sex: currentStudent.sex,
-        age: currentStudent.age,
-        dob: currentStudent.dob,
-        address: currentStudent.address,
-        school: currentStudent.school,
-        parentName: currentStudent.parentName,
-        contactNumber: currentStudent.contactNumber,
-        systemicConditions: currentStudent.systemicConditions,
-        allergiesFood: currentStudent.allergiesFood,
-        allergiesMedicines: currentStudent.allergiesMedicines,
-        hasToothbrush: '',
-        brushFrequency: '',
-        toothbrushChanges: '',
-        usesToothpaste: '',
-        dentalVisits: '',
-        toothExtraction: exam.toothExtraction,
-        toothFilling: exam.toothFilling,
-        cleaning: exam.toothCleaning,
-        fluoride: exam.fluoride,
-        dentalConsultations: exam.dentalConsult,
-        severeCavities: exam.severeCavities,
-        oralExamNotes: exam.oralNotes,
-        cleaningNotes: exam.cleaningNotes,
-        remarks: exam.remarks,
-        extractionNotes: exam.extractionNotes,
-        fillingNotes: exam.fillingNotes,
-        dentalProcedures: ''
+        // Basic Info - match exact column headers
+        'Complete Name of Pupil / Kumpletong Ngalan ng Mag-aaral:': currentStudent.name || '',
+        'Sex / Kasarian': currentStudent.sex || '',
+        'Age / Edad': currentStudent.age || '',
+        'Date of Birth / Petsa ng kapanganakan': formattedDob,
+        'Address / Tirahan': currentStudent.address || '',
+        'School / Paaralan': currentStudent.school || '',
+        'Name of Parent/Guardian / Ngalan ng Magulang/Tagapag-alaga:': currentStudent.parentName || '',
+        'Contact Number / Numero ng Telepono:': currentStudent.contactNumber || '',
+        'Systemic Conditions / Sistemikong karamdaman': currentStudent.systemicConditions || '',
+        'Allergies (Food & Environment) / Allergy (Pagkain at Kapaligiran)': currentStudent.allergiesFood || '',
+        'Allergies (Medicines) / Allergy (Mga Gamot)': currentStudent.allergiesMedicines || '',
+        
+        // Dental fields
+        'Do you have a toothbrush? / Mayroon ka bang sipilyo?': '',
+        'How many times do you brush your teeth? / Ilang beses ka magsipilyo': '',
+        'How many times do you change your toothbrush in a year? / Ilang beses ka magpalit ng sipilyo sa isang taon?': '',
+        'Do you use toothpaste in brushing? / Gumagamit ka ba ng toothpaste kapag nagsisipilyo?': '',
+        'How many times do you visit the dentist in a year? / Ilang beses ka pumunta sa dentista sa isang taon?': '',
+        'Oral Exam (Notes) / Pagsusuri sa Ngipin (Mga Tala)': document.getElementById('oralNotes')?.value || '',
+        
+        // FDI fields
+        'Tooth Extraction (enter the tooth using FDI numbering system, separate by commas)/ Pagbunot ng Ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)': 
+            document.getElementById('toothExtraction')?.value || '',
+        'Tooth Filling (enter the tooth using FDI numbering system, separate by commas)/Pagpasta ng Ngipin (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)': 
+            document.getElementById('toothFilling')?.value || '',
+        'Cleaning (enter the tooth using FDI numbering system, separate by commas) / Paglilinis (ilagay ang ngipin gamit ang FDI numbering system, paghiwalayin gamit ang kuwit)': 
+            document.getElementById('toothCleaning')?.value || '',
+        'Cleaning (Notes) / Paglilinis (Mga Tala)': document.getElementById('cleaningNotes')?.value || '',
+        'Fluoride': document.getElementById('fluoride')?.value || '',
+        'Dental Consultations/Konsultasyon sa Ngipin': document.getElementById('dentalConsult')?.value || '',
+        'Severe Childhood Cavities/Malubhang Karies sa Bata': document.getElementById('severeCavities')?.value || '',
+        'Dental Procedures/Mga Pamamaraan sa Ngipin': '',
+        'Remarks: / Mga Puna:': document.getElementById('remarks')?.value || ''
     };
 
-    console.log('Sending full record to Apps Script:', fullRecord);
+    console.log('SENDING TO APPS SCRIPT:', fullRecord);
 
     try {
         const formData = new FormData();
@@ -552,22 +552,26 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
             body: formData
         });
 
-        const result = await response.json();
-        console.log('Apps Script response:', result);
+        const responseText = await response.text();
+        console.log('RAW RESPONSE:', responseText);
 
-        if (result.success) {
-            showToast('✅ Record saved to Google Sheets!', 'success');
-            e.target.reset();
-            resetTeeth();
-            // Optionally refresh previous exams list
-            loadPreviousExams(currentStudentId);
-        } else {
-            showToast('❌ Error: ' + (result.error || 'Unknown error'), 'error');
-            console.error('Save error:', result.error);
+        try {
+            const result = JSON.parse(responseText);
+            if (result.success) {
+                alert('✅ Saved! Check your Google Sheet');
+                e.target.reset();
+                resetTeeth();
+                loadPreviousExams(currentStudentId);
+            } else {
+                alert('❌ Error: ' + (result.error || 'Unknown error'));
+            }
+        } catch (e) {
+            console.error('Could not parse response as JSON:', responseText);
+            alert('Server returned non-JSON response. Check console.');
         }
     } catch (error) {
-        console.error('Network or other error:', error);
-        showToast('❌ Failed to save: ' + error.message, 'error');
+        console.error('FETCH ERROR:', error);
+        alert('Network error: ' + error.message);
     }
 });
 // ==================== UI HELPERS ====================
