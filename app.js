@@ -37,17 +37,17 @@ async function openDB() {
             console.log('Upgrading database from', event.oldVersion, 'to', event.newVersion);
             Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
 
-            // Students store (static info)
+            // Students store
             const studentStore = db.createObjectStore('students', { keyPath: 'id', autoIncrement: true });
             studentStore.createIndex('name', 'name', { unique: false });
             studentStore.createIndex('dob', 'dob', { unique: false });
             studentStore.createIndex('school', 'school', { unique: false });
 
-            // Exams store (all dental records, with synced flag)
+            // Exams store with synced flag
             const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
             examStore.createIndex('studentId', 'studentId', { unique: false });
             examStore.createIndex('date', 'date', { unique: false });
-            examStore.createIndex('synced', 'synced', { unique: false }); // to find unsynced quickly
+            examStore.createIndex('synced', 'synced', { unique: false });
 
             console.log('Database stores created');
         };
@@ -77,7 +77,7 @@ function formatDateForDisplay(dateValue) {
     return String(dateValue);
 }
 
-// ==================== SYNC UNSYNCED EXAMS ====================
+// ==================== SYNC UNSYNCED EXAMS (FIXED) ====================
 async function syncUnsyncedExams() {
     if (!navigator.onLine) {
         console.log('Offline, cannot sync');
@@ -86,12 +86,12 @@ async function syncUnsyncedExams() {
     await openDB();
     const tx = db.transaction('exams', 'readonly');
     const store = tx.objectStore('exams');
-    const index = store.index('synced');
-    const request = index.getAll(false); // get all unsynced exams
+    const request = store.getAll(); // get all exams, we'll filter in memory
 
     return new Promise(resolve => {
         request.onsuccess = async () => {
-            const unsynced = request.result;
+            const allExams = request.result;
+            const unsynced = allExams.filter(exam => !exam.synced);
             if (unsynced.length === 0) {
                 console.log('No unsynced exams');
                 resolve();
@@ -101,7 +101,6 @@ async function syncUnsyncedExams() {
             let successCount = 0;
             for (const exam of unsynced) {
                 try {
-                    // Send the full record to Apps Script
                     const formData = new FormData();
                     formData.append('action', 'save');
                     formData.append('record', JSON.stringify(exam.data));
@@ -205,7 +204,7 @@ function resetTeeth() {
     updateToothFields();
 }
 
-// ==================== SEARCH FUNCTION (consolidates student + latest exam) ====================
+// ==================== SEARCH FUNCTION (with online cache and offline fix) ====================
 window.searchStudent = async function() {
     console.log('=== SEARCH FUNCTION STARTED ===');
     const name = document.getElementById('searchName')?.value.trim() || '';
@@ -243,19 +242,17 @@ window.searchStudent = async function() {
                 if (result.success && result.found && result.records.length > 0) {
                     console.log('Found student online, caching records...');
 
-                    // Sort records by timestamp descending (most recent first)
                     const sortedRecords = result.records.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                     const latestRecord = sortedRecords[0];
 
-                    // --- FIX: Format the date to DD/MM/YYYY before storing ---
+                    // Format date for local storage
                     const formattedDob = formatDateForDisplay(latestRecord.dob);
 
-                    // Prepare student data with formatted DOB
                     const studentData = {
                         name: latestRecord.completeName,
                         sex: latestRecord.sex,
                         age: latestRecord.age,
-                        dob: formattedDob,          // <-- use formatted date
+                        dob: formattedDob,
                         address: latestRecord.address,
                         school: latestRecord.school,
                         parentName: latestRecord.parentName,
@@ -265,19 +262,16 @@ window.searchStudent = async function() {
                         allergiesMedicines: latestRecord.allergiesMedicines
                     };
 
-                    // Save student to local DB and get the saved object (with ID)
                     const savedStudent = await saveStudentToLocal(studentData);
                     currentStudent = savedStudent;
                     currentStudentId = savedStudent.id;
 
-                    // Now cache all exams from the online records
+                    // Cache exams
                     const examTx = db.transaction('exams', 'readwrite');
                     const examStore = examTx.objectStore('exams');
                     for (const record of sortedRecords) {
-                        // Check if this exam already exists locally (by date and studentId)
                         const existing = await findExamByDate(currentStudentId, record.timestamp);
                         if (!existing) {
-                            // For the exam data, also format the dob for consistency
                             const examData = { ...record, dob: formatDateForDisplay(record.dob) };
                             const exam = {
                                 studentId: currentStudentId,
@@ -289,9 +283,7 @@ window.searchStudent = async function() {
                         }
                     }
 
-                    // Load all exams for this student (including those just added)
                     const allExams = await getExamsForStudent(currentStudentId);
-                    // Display the most recent record (use formatted dob)
                     const latestExam = allExams.length > 0 ? { ...savedStudent, ...allExams[0].data } : savedStudent;
                     displayConsolidatedInfo(latestExam);
                     if (allExams.length > 1) {
@@ -307,7 +299,7 @@ window.searchStudent = async function() {
             }
         }
 
-        // Offline: search local students
+        // Offline search
         const tx = db.transaction('students', 'readonly');
         const store = tx.objectStore('students');
         const all = await new Promise(res => {
@@ -316,7 +308,6 @@ window.searchStudent = async function() {
             req.onerror = () => res([]);
         });
 
-        // Find matching student (dob is already DD/MM/YYYY in local store)
         const student = all.find(s =>
             s.name?.toLowerCase() === name.toLowerCase() &&
             s.dob === dob &&
@@ -335,7 +326,6 @@ window.searchStudent = async function() {
             }
             showStatus('searchStatus', `✅ Found locally with ${exams.length} exam(s)`, 'success');
         } else {
-            // Not found anywhere
             if (confirm('❌ Student not found. Create new record?')) {
                 document.getElementById('editName').value = name;
                 document.getElementById('editDob').value = dob;
@@ -354,7 +344,7 @@ window.searchStudent = async function() {
     }
 };
 
-// Helper to find exam by date
+// ==================== HELPER FUNCTIONS FOR EXAMS ====================
 async function findExamByDate(studentId, date) {
     await openDB();
     const tx = db.transaction('exams', 'readonly');
@@ -367,7 +357,6 @@ async function findExamByDate(studentId, date) {
     return exams.find(e => e.date === date);
 }
 
-// Helper to get all exams for a student, sorted by date desc
 async function getExamsForStudent(studentId) {
     await openDB();
     const tx = db.transaction('exams', 'readonly');
@@ -439,9 +428,12 @@ function displayConsolidatedInfo(record) {
         resetTeeth();
     }
 
-    document.getElementById('studentInfo')?.classList.remove('hidden');
-    document.getElementById('studentForm')?.classList.remove('hidden');
-    document.getElementById('selectedStudentName').textContent = record.name || record.completeName || 'Unknown';
+    const studentInfo = document.getElementById('studentInfo');
+    const studentForm = document.getElementById('studentForm');
+    const selectedName = document.getElementById('selectedStudentName');
+    if (studentInfo) studentInfo.classList.remove('hidden');
+    if (studentForm) studentForm.classList.remove('hidden');
+    if (selectedName) selectedName.textContent = record.name || record.completeName || 'Unknown';
 }
 
 function displayPreviousExams(exams) {
@@ -496,7 +488,6 @@ async function saveStudentToLocal(studentData) {
     const tx = db.transaction('students', 'readwrite');
     const store = tx.objectStore('students');
 
-    // Check if exists
     const all = await new Promise(res => {
         const req = store.getAll();
         req.onsuccess = () => res(req.result);
@@ -508,7 +499,6 @@ async function saveStudentToLocal(studentData) {
     );
 
     if (existing) {
-        // Update
         studentData.id = existing.id;
         await store.put(studentData);
         return studentData;
@@ -554,7 +544,6 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         extractionNotes: document.getElementById('extractionNotes')?.value || '',
         fillingNotes: document.getElementById('fillingNotes')?.value || '',
 
-        // Empty fields to match sheet
         hasToothbrush: '',
         brushFrequency: '',
         toothbrushChanges: '',
@@ -563,12 +552,9 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         dentalProcedures: ''
     };
 
-    console.log('Saving exam:', fullRecord);
-
     try {
         await openDB();
 
-        // Save to local exams store (with synced = false initially)
         const exam = {
             studentId: currentStudentId,
             date: new Date().toISOString(),
@@ -581,7 +567,6 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         const examId = await store.add(exam);
         console.log('Exam saved locally with ID', examId);
 
-        // Try to sync immediately if online
         if (navigator.onLine) {
             const formData = new FormData();
             formData.append('action', 'save');
@@ -589,7 +574,6 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
 
             const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
             if (response.ok) {
-                // Mark as synced
                 exam.synced = true;
                 exam.id = examId;
                 await store.put(exam);
@@ -604,7 +588,6 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
         e.target.reset();
         resetTeeth();
 
-        // Refresh previous exams list
         const exams = await getExamsForStudent(currentStudentId);
         if (exams.length > 1) {
             displayPreviousExams(exams.slice(1));
@@ -631,7 +614,7 @@ window.newStudent = function() {
     resetTeeth();
 };
 
-// ==================== SAVE STUDENT INFO (edit form) ====================
+// ==================== SAVE STUDENT INFO ====================
 window.saveStudentInfo = async function() {
     const student = {
         name: document.getElementById('editName')?.value || '',
@@ -666,9 +649,8 @@ window.saveStudentInfo = async function() {
     }
     displayConsolidatedInfo(student);
     showToast('✅ Student saved', 'success');
-    // Optionally sync student info? Not needed now; exams carry static info.
 };
-window.saveStudentInfo = saveStudentInfo;
+
 // ==================== UI HELPERS ====================
 function switchTab(num) {
     document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===num-1));
@@ -722,6 +704,8 @@ window.clearSearch = function() {
     document.getElementById('dentalExamForm')?.reset();
     showToast('Cleared', 'info');
 };
+
+window.syncPendingRecords = syncUnsyncedExams;
 
 // ==================== INIT ====================
 window.addEventListener('load', async () => {
