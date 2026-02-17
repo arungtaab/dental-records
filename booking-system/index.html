@@ -11,6 +11,9 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
+    <!-- SheetJS for Excel/CSV parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
         * {
             margin: 0;
@@ -490,7 +493,7 @@
             margin-bottom: 4px;
         }
 
-        .form-control {
+        .form-control, .form-control-file {
             width: 100%;
             padding: 14px 16px;
             border: 1px solid var(--border);
@@ -502,6 +505,79 @@
         .form-control:focus {
             outline: none;
             border-color: var(--secondary);
+        }
+
+        /* Import Section */
+        .import-section {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 16px;
+            border: 2px dashed var(--secondary);
+        }
+
+        .import-section h4 {
+            color: var(--primary);
+            margin-bottom: 12px;
+        }
+
+        .import-info {
+            font-size: 0.85rem;
+            color: var(--gray);
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        .column-mapping {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .mapping-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            gap: 10px;
+        }
+
+        .mapping-row label {
+            width: 120px;
+            font-size: 0.85rem;
+            color: var(--primary);
+        }
+
+        .mapping-row select {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .preview-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            font-size: 0.8rem;
+        }
+
+        .preview-table th,
+        .preview-table td {
+            border: 1px solid var(--border);
+            padding: 8px;
+            text-align: left;
+        }
+
+        .preview-table th {
+            background: var(--primary);
+            color: white;
+        }
+
+        .preview-table tr:nth-child(even) {
+            background: #f8f9fa;
         }
 
         /* Time Slots Grid */
@@ -709,6 +785,22 @@
             margin-bottom: 16px;
             color: var(--border);
         }
+
+        /* Progress Bar */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--success);
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -909,9 +1001,41 @@
                     </button>
                     
                     <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">
-                        <i class="fas fa-upload"></i> Import Data
+                        <i class="fas fa-upload"></i> Import JSON
                     </button>
                     <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importData(this)">
+                    
+                    <div class="import-section">
+                        <h4><i class="fas fa-file-excel"></i> Import from Google Sheets</h4>
+                        <p class="import-info">
+                            Upload your Google Sheets export (CSV or Excel file).<br>
+                            The sheet should have columns for patient information.
+                        </p>
+                        
+                        <button class="btn btn-outline" onclick="document.getElementById('sheetFile').click()">
+                            <i class="fas fa-upload"></i> Select Sheet File
+                        </button>
+                        <input type="file" id="sheetFile" accept=".csv,.xlsx,.xls" style="display: none;" onchange="handleSheetUpload(this)">
+                        
+                        <div id="sheetPreview" class="hidden">
+                            <h5 style="margin: 16px 0 8px;">Column Mapping</h5>
+                            <div class="column-mapping" id="columnMapping"></div>
+                            
+                            <h5 style="margin: 16px 0 8px;">Preview (First 5 rows)</h5>
+                            <div id="previewTable"></div>
+                            
+                            <button class="btn btn-success" onclick="importFromSheet()">
+                                <i class="fas fa-check"></i> Import Data
+                            </button>
+                        </div>
+                        
+                        <div id="importProgress" class="hidden">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="importProgressFill" style="width: 0%"></div>
+                            </div>
+                            <p id="importStatus">Processing...</p>
+                        </div>
+                    </div>
                     
                     <button class="btn btn-outline" onclick="downloadSampleData()">
                         <i class="fas fa-file"></i> Download Sample
@@ -995,7 +1119,7 @@
                 <i class="fas fa-download"></i> Export Data
             </button>
             <button class="btn btn-outline" onclick="document.getElementById('importFile').click(); closeMenu();">
-                <i class="fas fa-upload"></i> Import Data
+                <i class="fas fa-upload"></i> Import JSON
             </button>
             <button class="btn btn-outline" onclick="downloadSampleData(); closeMenu();">
                 <i class="fas fa-file"></i> Download Sample
@@ -1018,6 +1142,11 @@
         let selectedPatient = null;
         let selectedSlot = null;
         let currentView = 'day';
+        
+        // Sheet import variables
+        let sheetData = null;
+        let sheetHeaders = [];
+        let columnMapping = {};
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -1217,7 +1346,6 @@
                     if (currentView === 'day') {
                         quickAddAppointment(info.date);
                     } else {
-                        // In month view, switch to day view for the clicked date
                         calendar.changeView('timeGridDay', info.date);
                         currentView = 'day';
                         document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
@@ -1496,8 +1624,6 @@
         function filterPatients(type) {
             document.querySelectorAll('.filter-tab').forEach(tab => tab.classList.remove('active'));
             event.currentTarget.classList.add('active');
-            
-            // In a real implementation, you would filter the patients list
             loadPatientsList();
         }
 
@@ -1859,6 +1985,196 @@
                 input.value = '';
             };
             reader.readAsText(file);
+        }
+
+        // Google Sheets Import Functions
+        function handleSheetUpload(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    
+                    // Get first sheet
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    // Convert to JSON
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                    
+                    if (jsonData.length < 2) {
+                        showToast('Sheet has no data', 'error');
+                        return;
+                    }
+                    
+                    // Extract headers (first row)
+                    sheetHeaders = jsonData[0].map(h => String(h).trim());
+                    sheetData = jsonData.slice(1).filter(row => row.some(cell => cell && cell.toString().trim()));
+                    
+                    // Show preview and mapping
+                    showSheetPreview();
+                    
+                } catch (error) {
+                    console.error('Error parsing sheet:', error);
+                    showToast('Error parsing file: ' + error.message, 'error');
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showSheetPreview() {
+            const previewDiv = document.getElementById('sheetPreview');
+            const mappingDiv = document.getElementById('columnMapping');
+            const tableDiv = document.getElementById('previewTable');
+            
+            // Create column mapping dropdowns
+            let mappingHtml = '';
+            const fields = [
+                { id: 'pupilName', label: 'Student Name' },
+                { id: 'parentName', label: 'Parent Name' },
+                { id: 'contactNumber', label: 'Contact Number' },
+                { id: 'school', label: 'School' },
+                { id: 'gradeSection', label: 'Grade/Section' },
+                { id: 'cleaning', label: 'Cleaning Consent' },
+                { id: 'extractionPermanent', label: 'Extraction (Permanent)' },
+                { id: 'extractionTemporary', label: 'Extraction (Temporary)' },
+                { id: 'filling', label: 'Filling' },
+                { id: 'sealant', label: 'Sealant' },
+                { id: 'treatment', label: 'General Treatment' },
+                { id: 'finalConsent', label: 'Final Consent' }
+            ];
+            
+            fields.forEach(field => {
+                mappingHtml += `
+                    <div class="mapping-row">
+                        <label>${field.label}:</label>
+                        <select id="map_${field.id}">
+                            <option value="">- Skip -</option>
+                            ${sheetHeaders.map((header, index) => 
+                                `<option value="${index}">${header}</option>`
+                            ).join('')}
+                        </select>
+                    </div>
+                `;
+            });
+            
+            mappingDiv.innerHTML = mappingHtml;
+            
+            // Create preview table (first 5 rows)
+            let tableHtml = '<table class="preview-table"><tr>';
+            sheetHeaders.forEach(header => {
+                tableHtml += `<th>${header}</th>`;
+            });
+            tableHtml += '</tr>';
+            
+            for (let i = 0; i < Math.min(5, sheetData.length); i++) {
+                tableHtml += '<tr>';
+                sheetData[i].forEach(cell => {
+                    tableHtml += `<td>${cell || ''}</td>`;
+                });
+                tableHtml += '</tr>';
+            }
+            tableHtml += '</table>';
+            
+            tableDiv.innerHTML = tableHtml;
+            previewDiv.classList.remove('hidden');
+        }
+
+        function importFromSheet() {
+            if (!sheetData || sheetData.length === 0) {
+                showToast('No data to import', 'error');
+                return;
+            }
+            
+            // Get column mappings
+            const fields = [
+                'pupilName', 'parentName', 'contactNumber', 'school', 'gradeSection',
+                'cleaning', 'extractionPermanent', 'extractionTemporary', 'filling',
+                'sealant', 'treatment', 'finalConsent'
+            ];
+            
+            const mappings = {};
+            fields.forEach(field => {
+                const select = document.getElementById(`map_${field}`);
+                if (select && select.value) {
+                    mappings[field] = parseInt(select.value);
+                }
+            });
+            
+            // Show progress
+            document.getElementById('sheetPreview').classList.add('hidden');
+            document.getElementById('importProgress').classList.remove('hidden');
+            
+            // Process data
+            let importedCount = 0;
+            const totalRows = sheetData.length;
+            
+            setTimeout(() => {
+                sheetData.forEach((row, index) => {
+                    try {
+                        const patient = {
+                            id: 'pat_' + Date.now() + '_' + index,
+                            timestamp: new Date().toISOString(),
+                            pupilName: mappings.pupilName !== undefined ? String(row[mappings.pupilName] || '').trim() : '',
+                            parentName: mappings.parentName !== undefined ? String(row[mappings.parentName] || '').trim() : '',
+                            contactNumber: mappings.contactNumber !== undefined ? String(row[mappings.contactNumber] || '').trim() : '',
+                            school: mappings.school !== undefined ? String(row[mappings.school] || '').trim() : '',
+                            gradeSection: mappings.gradeSection !== undefined ? String(row[mappings.gradeSection] || '').trim() : '',
+                            treatments: {
+                                cleaning: mappings.cleaning !== undefined ? parseConsent(row[mappings.cleaning]) : '',
+                                extractionPermanent: mappings.extractionPermanent !== undefined ? parseConsent(row[mappings.extractionPermanent]) : '',
+                                extractionTemporary: mappings.extractionTemporary !== undefined ? parseConsent(row[mappings.extractionTemporary]) : '',
+                                filling: mappings.filling !== undefined ? parseConsent(row[mappings.filling]) : '',
+                                sealant: mappings.sealant !== undefined ? parseConsent(row[mappings.sealant]) : '',
+                                treatment: mappings.treatment !== undefined ? parseConsent(row[mappings.treatment]) : ''
+                            },
+                            finalConsent: mappings.finalConsent !== undefined ? String(row[mappings.finalConsent] || '').trim() : ''
+                        };
+                        
+                        // Only add if has name
+                        if (patient.pupilName) {
+                            patients.push(patient);
+                            importedCount++;
+                        }
+                    } catch (e) {
+                        console.error('Error processing row:', e);
+                    }
+                    
+                    // Update progress
+                    const progress = ((index + 1) / totalRows) * 100;
+                    document.getElementById('importProgressFill').style.width = progress + '%';
+                    document.getElementById('importStatus').textContent = 
+                        `Processing: ${index + 1}/${totalRows} rows (${importedCount} imported)`;
+                });
+                
+                // Save and cleanup
+                savePatients();
+                document.getElementById('importProgress').classList.add('hidden');
+                document.getElementById('sheetPreview').classList.add('hidden');
+                document.getElementById('sheetFile').value = '';
+                
+                showToast(`Successfully imported ${importedCount} patients`);
+                
+                if (document.getElementById('patientsPage').classList.contains('active')) {
+                    loadPatientsList();
+                }
+                
+            }, 100);
+        }
+
+        function parseConsent(value) {
+            if (!value) return '';
+            const str = String(value).toLowerCase().trim();
+            if (str.includes('accept') || str.includes('yes') || str.includes('agree') || str.includes('✓') || str.includes('✅')) {
+                return 'Accepted';
+            } else if (str.includes('declin') || str.includes('no') || str.includes('disagree') || str.includes('✗') || str.includes('❌')) {
+                return 'Declined';
+            }
+            return '';
         }
 
         function downloadSampleData() {
