@@ -491,6 +491,7 @@ window.loadExam = function (examData) {
             });
             updateToothFields();
         }
+        
         showToast('Loaded previous exam', 'success');
     }
 };
@@ -586,6 +587,9 @@ document.getElementById('dentalExamForm')?.addEventListener('submit', async func
                 exam.id = examId;
                 await store.put(exam);
                 showToast('✅ Saved to Google Sheet and synced!', 'success');
+                e.target.reset();
+                resetTeeth();
+                clearSearch();
             } else {
                 showToast('📱 Saved locally (will sync later)', 'offline');
             }
