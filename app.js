@@ -217,7 +217,32 @@ function resetTeeth() {
     updateToothFields();
 }
 
+// === FORMAT DATES ==
+function formatDateForDisplay(dateValue) {
+    if (!dateValue) return '';
+    if (dateValue instanceof Date) {
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const year = dateValue.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
+    if (typeof dateValue === 'string') {
+        // If it's already in DD/MM/YYYY, return as is
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateValue)) return dateValue;
+        // Try to parse it
+        const d = new Date(dateValue);
+        if (!isNaN(d.getTime())) {
+            const day = String(d.getDate()).padStart(2, '0');
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const year = d.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+    }
+    return String(dateValue);
+}
+
 // ==================== SEARCH FUNCTION (consolidates student + latest exam) ====================
+
 window.searchStudent = async function() {
     console.log('=== SEARCH FUNCTION STARTED ===');
     const name = document.getElementById('searchName')?.value.trim() || '';
@@ -283,7 +308,7 @@ window.searchStudent = async function() {
 
                     // Save student to local DB and get the saved object (with ID)
                     const savedStudent = await saveStudentToLocal(studentData);
-
+                    const formattedDob = formatDateForDisplay(latestRecord.dob);
                     // Merge with any exam data from the latest record (if present)
                     const consolidatedRecord = {
                         ...savedStudent,
@@ -389,8 +414,10 @@ window.searchStudent = async function() {
     }
 };
 
-// Helper function to display consolidated info (with null checks)
+// Helper function to display consolidated info (with formatted dates)
 function displayConsolidatedInfo(record) {
+    const formattedDob = formatDateForDisplay(record.dob);
+
     // Safely set text content
     const setText = (id, val) => {
         const el = document.getElementById(id);
@@ -403,7 +430,7 @@ function displayConsolidatedInfo(record) {
 
     // Display student info
     setText('displayName', record.name || record.completeName);
-    setText('displayDob', record.dob);
+    setText('displayDob', formattedDob);
     setText('displaySchool', record.school);
     setText('displayParent', record.parentName);
     setText('displayContact', record.contactNumber);
@@ -411,11 +438,11 @@ function displayConsolidatedInfo(record) {
     setText('displayFoodAllergy', record.allergiesFood || 'None');
     setText('displayMedAllergy', record.allergiesMedicines || 'None');
 
-    // Fill edit form
+    // Fill edit form (use formatted date)
     setValue('editName', record.name || record.completeName);
     setValue('editSex', record.sex);
     setValue('editAge', record.age);
-    setValue('editDob', record.dob);
+    setValue('editDob', formattedDob);
     setValue('editAddress', record.address);
     setValue('editSchool', record.school);
     setValue('editParent', record.parentName);
