@@ -977,13 +977,13 @@ function updateOnlineStatus() {
     if (navigator.onLine) {
         if (statusDiv) statusDiv.className = 'status online';
         if (icon) icon.textContent = '✅';
-        if (text) text.textContent = 'You are online / Online ka';
+        if (text) text.textContent = 'You are online';
         syncUnsyncedExams();
         cacheAllRecords(); // cache all records when online
     } else {
         if (statusDiv) statusDiv.className = 'status offline';
         if (icon) icon.textContent = '📴';
-        if (text) text.textContent = 'You are offline / Offline ka';
+        if (text) text.textContent = 'You are offline';
     }
 }
 
