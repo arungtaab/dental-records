@@ -265,8 +265,11 @@
 
         // Helper: count comma‑separated FDI list
         function countFDIList(str) {
-            if (!str || str.trim() === '') return 0;
-            return str.split(',').filter(item => item.trim() !== '').length;
+            if (str === null || str === undefined) return 0;
+            // Convert to string first
+            const s = String(str).trim();
+            if (s === '') return 0;
+            return s.split(',').filter(item => item.trim() !== '').length;
         }
 
         function isYes(val) {
