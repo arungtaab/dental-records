@@ -1,7 +1,7 @@
 // ==================== CONFIGURATION ====================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDyDOrWZamuNxeaIZ5CmCjRfcpIakz5PVy4riQBSWdcVrBcYMZAtUrJzgMJkT3TEfo1Q/exec';
 const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 14; // increment to ensure fresh schema
+const DB_VERSION = 12; // increment to ensure fresh schema
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
@@ -13,7 +13,6 @@ const toothStatus = {};
 const toothCategories = { extraction: [], filling: [], decayed: [], missing: [] };
 
 // ==================== INDEXEDDB SETUP ====================
-
 async function openDB() {
     if (dbInitPromise) return dbInitPromise;
     dbInitPromise = new Promise((resolve, reject) => {
@@ -37,25 +36,19 @@ async function openDB() {
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             console.log('Upgrading database from', event.oldVersion, 'to', event.newVersion);
-            // Create stores if they don't exist (do not delete)
-            if (!db.objectStoreNames.contains('students')) {
-                const studentStore = db.createObjectStore('students', { keyPath: 'id', autoIncrement: true });
-                studentStore.createIndex('name', 'name', { unique: false });
-                studentStore.createIndex('dob', 'dob', { unique: false });
-                studentStore.createIndex('school', 'school', { unique: false });
-                console.log('Created students store');
-            }
-            if (!db.objectStoreNames.contains('exams')) {
-                const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
-                examStore.createIndex('studentId', 'studentId', { unique: false });
-                examStore.createIndex('date', 'date', { unique: false });
-                examStore.createIndex('synced', 'synced', { unique: false });
-                console.log('Created exams store');
-            }
-            if (!db.objectStoreNames.contains('pending')) {
-                db.createObjectStore('pending', { keyPath: 'id', autoIncrement: true });
-                console.log('Created pending store');
-            }
+            Array.from(db.objectStoreNames).forEach(name => db.deleteObjectStore(name));
+
+            const studentStore = db.createObjectStore('students', { keyPath: 'id', autoIncrement: true });
+            studentStore.createIndex('name', 'name', { unique: false });
+            studentStore.createIndex('dob', 'dob', { unique: false });
+            studentStore.createIndex('school', 'school', { unique: false });
+
+            const examStore = db.createObjectStore('exams', { keyPath: 'id', autoIncrement: true });
+            examStore.createIndex('studentId', 'studentId', { unique: false });
+            examStore.createIndex('date', 'date', { unique: false });
+            examStore.createIndex('synced', 'synced', { unique: false });
+
+            console.log('Database stores created');
         };
     });
     return dbInitPromise;
