@@ -58,13 +58,13 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Student Dental Records <small>Tala ng Ngipin ng Mag-aaral</small></h1>
+            <h1>Student Dental Records </h1>
         </div>
 
         <!-- Connection Status -->
         <div id="connectionStatus" class="status online">
             <span id="statusIcon">✅</span>
-            <span id="statusText">You are online / Online ka</span>
+            <span id="statusText">You are online</span>
             <span id="pendingCount" class="pending-count hidden">0</span>
         </div>
 
@@ -72,15 +72,12 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab(1)">
                 <span class="en">🦷 Student + Dental</span>
-                <span class="tl">Mag-aaral + Ngipin</span>
             </button>
             <button class="tab" onclick="switchTab(2)">
                 <span class="en">📊 Analysis Dashboard</span>
-                <span class="tl">Dashboard ng Pagsusuri</span>
             </button>
             <button class="tab" onclick="switchTab(3)">
                 <span class="en">📅 Booking System</span>
-                <span class="tl">Sistema ng Pag-book</span>
             </button>
         </div>
 
@@ -90,96 +87,93 @@
             <div id="tab1" class="tab-content">
                 <!-- Search Section -->
                 <div class="search-section">
-                    <h3><span class="en">🔍 Search Student / Maghanap ng Mag-aaral</span></h3>
+                    <h3><span class="en">🔍 Search Student </span></h3>
                     <div class="search-grid">
                         <div class="form-group">
-                            <label><span class="en">Complete Name</span><span class="tl">Buong Pangalan</span></label>
+                            <label><span class="en">Complete Name</span></label>
                             <input type="text" id="searchName" placeholder="Enter full name">
                         </div>
                         <div class="form-group">
-                            <label><span class="en">Date of Birth</span><span class="tl">Petsa ng
-                                    Kapanganakan</span></label>
+                            <label><span class="en">Date of Birth</span></label>
                             <input type="text" id="searchDob" placeholder="DD/MM/YYYY">
                         </div>
                         <div class="form-group">
-                            <label><span class="en">School</span><span class="tl">Paaralan</span></label>
+                            <label><span class="en">School</span></label>
                             <select id="searchSchool">
-                                <option value="">Select / Pumili</option>
+                                <option value="">Select</option>
                                 <option value="JCES">JCES</option>
                                 <option value="Boctol">Boctol Elementary School</option>
                             </select>
                         </div>
                     </div>
                     <div class="btn-group">
-                        <button class="btn" onclick="searchStudent()"><span>🔍</span><span class="en">Search</span><span
-                                class="tl">Hanapin</span></button>
+                        <button class="btn" onclick="searchStudent()"><span>🔍</span><span class="en">Search</span></button>
                         <button class="btn btn-success" onclick="newStudent()"><span>🆕</span><span class="en">New
-                                Student</span><span class="tl">Bagong Mag-aaral</span></button>
+                                Student</span></button>
                     </div>
                     <div id="searchStatus" class="hidden"></div>
                     <div id="searchLoading" class="loading hidden">
                         <div class="spinner"></div>
-                        <p>Searching / Naghahanap...</p>
+                        <p>Searching...</p>
                     </div>
                 </div>
 
                 <!-- Student Info Display -->
                 <div id="studentInfo" class="student-card hidden">
-                    <h3><span class="en">📋 Student Information / </span><span class="tl">Impormasyon ng Mag-aaral</span>
+                    <h3><span class="en">📋 Student Information </span>
                     </h3>
                     <div class="info-grid">
-                        <div class="info-item"><span class="info-label">Name / Pangalan:</span> <span
+                        <div class="info-item"><span class="info-label">Name:</span> <span
                                 id="displayName"></span></div>
-                        <div class="info-item"><span class="info-label">DOB / Kapanganakan:</span> <span
+                        <div class="info-item"><span class="info-label">DOB:</span> <span
                                 id="displayDob"></span></div>
-                        <div class="info-item"><span class="info-label">School / Paaralan:</span> <span
+                        <div class="info-item"><span class="info-label">School:</span> <span
                                 id="displaySchool"></span></div>
-                        <div class="info-item"><span class="info-label">Parent / Magulang:</span> <span
+                        <div class="info-item"><span class="info-label">Parent:</span> <span
                                 id="displayParent"></span></div>
-                        <div class="info-item"><span class="info-label">Contact / Kontak:</span> <span
+                        <div class="info-item"><span class="info-label">Contact:</span> <span
                                 id="displayContact"></span></div>
-                        <div class="info-item"><span class="info-label">Systemic / Sistemiko:</span> <span
+                        <div class="info-item"><span class="info-label">Systemic:</span> <span
                                 id="displaySystemic"></span></div>
-                        <div class="info-item"><span class="info-label">Food Allergies / Allergy sa Pagkain:</span>
+                        <div class="info-item"><span class="info-label">Food Allergies:</span>
                             <span id="displayFoodAllergy"></span></div>
-                        <div class="info-item"><span class="info-label">Medicine Allergies / Allergy sa Gamot:</span>
+                        <div class="info-item"><span class="info-label">Medicine Allergies:</span>
                             <span id="displayMedAllergy"></span></div>
                     </div>
                 </div>
 
                 <!-- Student Edit Form -->
                 <div id="studentForm" class="student-card hidden">
-                    <h3><span class="en">📝 Edit Student Information / </span><span class="tl">I-edit ang
-                            Impormasyon</span></h3>
+                    <h3><span class="en">📝 Edit Student Information / </span></h3>
                     <form id="studentInfoForm">
                         <div class="info-grid">
-                            <div class="form-group"><label>Complete Name / Buong Pangalan</label><input type="text"
+                            <div class="form-group"><label>Complete Name</label><input type="text"
                                     id="editName" required></div>
-                            <div class="form-group"><label>Sex / Kasarian</label>
+                            <div class="form-group"><label>Sex</label>
                                 <select id="editSex">
                                     <option value="">Select</option>
-                                    <option value="Male / Lalaki">Male / Lalaki</option>
-                                    <option value="Female / Babae">Female / Babae</option>
+                                    <option value="Male / Lalaki">Male</option>
+                                    <option value="Female / Babae">Female</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label>Age / Edad</label><input type="text" id="editAge"></div>
-                            <div class="form-group"><label>Date of Birth / Petsa ng Kapanganakan</label><input
+                            <div class="form-group"><label>Age</label><input type="text" id="editAge"></div>
+                            <div class="form-group"><label>Date of Birth</label><input
                                     type="text" id="editDob" required placeholder="DD/MM/YYYY"></div>
-                            <div class="form-group"><label>Address / Tirahan</label><input type="text" id="editAddress">
+                            <div class="form-group"><label>Address</label><input type="text" id="editAddress">
                             </div>
-                            <div class="form-group"><label>School / Paaralan</label>
+                            <div class="form-group"><label>School</label>
                                 <select id="editSchool" required>
                                     <option value="">Select</option>
                                     <option value="JCES">JCES</option>
                                     <option value="Boctol">Boctol Elementary School</option>
                                 </select>
                             </div>
-                            <div class="form-group"><label>Parent/Guardian / Magulang</label><input type="text"
+                            <div class="form-group"><label>Parent/Guardian</label><input type="text"
                                     id="editParent"></div>
-                            <div class="form-group"><label>Contact Number / Numero</label><input type="text"
+                            <div class="form-group"><label>Contact Number</label><input type="text"
                                     id="editContact"></div>
                         </div>
-                        <h4>Medical History / Kasaysayang Medikal</h4>
+                        <h4>Medical History</h4>
                         <div class="info-grid">
                             <div class="form-group"><label>Systemic Conditions</label><input type="text"
                                     id="editSystemic" placeholder="e.g., Asthma"></div>
@@ -190,25 +184,25 @@
                         </div>
                         <div class="btn-group">
                             <button type="button" class="btn btn-success" onclick="saveStudentInfo()">💾 Save Student
-                                Info / I-save</button>
+                                Info</button>
                         </div>
                     </form>
                 </div>
 
                 <!-- FDI Interactive Chart -->
                 <div class="fdi-chart">
-                    <div class="chart-title">🦷 FDI Tooth Chart / Tsart ng Ngipin</div>
+                    <div class="chart-title">🦷 FDI Tooth Chart </div>
                     <div class="legend">
                         <span class="legend-item"><span class="legend-color"
                                 style="background:var(--tooth-normal);"></span> N - Normal</span>
                         <span class="legend-item"><span class="legend-color"
-                                style="background:var(--tooth-decayed);"></span> O - Decayed / Sirang</span>
+                                style="background:var(--tooth-decayed);"></span> O - Decayed</span>
                         <span class="legend-item"><span class="legend-color"
-                                style="background:var(--tooth-filled);"></span> F - Filled / Pasta</span>
+                                style="background:var(--tooth-filled);"></span> F - Filled</span>
                         <span class="legend-item"><span class="legend-color"
-                                style="background:var(--tooth-missing);"></span> M - Missing / Wala</span>
+                                style="background:var(--tooth-missing);"></span> M - Missing</span>
                         <span class="legend-item"><span class="legend-color"
-                                style="background:var(--tooth-extract);"></span> X - Extract / Bubunutin</span>
+                                style="background:var(--tooth-extract);"></span> X - Extract </span>
                     </div>
                     <!-- Permanent Teeth -->
                     <div class="quadrant-grid">
@@ -252,56 +246,55 @@
 
                 <!-- Dental Exam Form (with notes) -->
                 <div class="student-card">
-                    <h3><span class="en">📝 Dental Examination / Eksaminasyon sa Ngipin</span></h3>
+                    <h3><span class="en">📝 Dental Examination </span></h3>
                     <form id="dentalExamForm">
                         <div class="info-grid">
-                            <div class="form-group"><label>Tooth Extraction (FDI) / Pagbunot</label><input type="text"
+                            <div class="form-group"><label>Tooth Extraction (FDI) </label><input type="text"
                                     id="toothExtraction" readonly placeholder="Click teeth above"></div>
-                            <div class="form-group"><label>Tooth Filling (FDI) / Pagpasta</label><input type="text"
+                            <div class="form-group"><label>Tooth Filling (FDI) </label><input type="text"
                                     id="toothFilling" readonly placeholder="Click teeth above"></div>
-                            <div class="form-group"><label>Tooth Decayed (FDI) / Bulok na ngipin</label>
+                            <div class="form-group"><label>Tooth Decayed (FDI)</label>
                                 <input type="text" id="toothDecayed" readonly placeholder="Click teeth above">
                             </div>
-                            <div class="form-group"><label>Tooth Missing (FDI) / Nawawalang ngipin</label>
+                            <div class="form-group"><label>Tooth Missing (FDI)</label>
                                 <input type="text" id="toothMissing" readonly placeholder="Click teeth above">
                             </div>
-                            <div class="form-group"><label>Fluoride (within 1year)</label><select id="fluoride">
+                            <div class="form-group"><label>Fluoride (withing 1 year)</label><select id="fluoride">
                                     <option value="">Select</option>
-                                    <option value="Oo">Oo / Yes</option>
-                                    <option value="Hindi">Hindi / No</option>
+                                    <option value="Oo">Yes</option>
+                                    <option value="Hindi">No</option>
                                 </select></div>
-                            <div class="form-group"><label>Dental Consultations / Konsultasyon</label><select
+                            <div class="form-group"><label>Dental Consultations</label><select
                                     id="dentalConsult">
                                     <option value="">Select</option>
-                                    <option value="Oo">Oo / Yes</option>
-                                    <option value="Hindi">Hindi / No</option>
+                                    <option value="Oo">Yes</option>
+                                    <option value="Hindi">No</option>
                                 </select></div>
-                            <div class="form-group"><label>Severe Cavities / Malubhang Karies</label><select
+                            <div class="form-group"><label>Severe Cavities</label><select
                                     id="severeCavities">
                                     <option value="">Select</option>
-                                    <option value="Oo">Oo / Yes</option>
-                                    <option value="Hindi">Hindi / No</option>
+                                    <option value="Oo">Yes</option>
+                                    <option value="Hindi">No</option>
                                 </select></div>
                         </div>
-                        <div class="form-group"><label>Oral Exam Notes / Mga Tala ng Pagsusuri</label><textarea
+                        <div class="form-group"><label>Oral Exam Notes</label><textarea
                                 id="oralNotes" rows="2"></textarea></div>
-                        <div class="form-group"><label>Cleaning Notes / Mga Tala sa Paglilinis</label><textarea
+                        <div class="form-group"><label>Cleaning Notes</label><textarea
                                 id="cleaningNotes" rows="2"></textarea></div>
-                        <div class="form-group"><label>Extraction Notes / Mga Tala sa Pagbunot</label><textarea
+                        <div class="form-group"><label>Extraction Notes</label><textarea
                                 id="extractionNotes" rows="2"></textarea></div>
-                        <div class="form-group"><label>Filling Notes / Mga Tala sa Pagpasta</label><textarea
+                        <div class="form-group"><label>Filling Notes</label><textarea
                                 id="fillingNotes" rows="2"></textarea></div>
-                        <div class="form-group"><label>Remarks / Mga Puna</label><textarea id="remarks"
+                        <div class="form-group"><label>Remarks</label><textarea id="remarks"
                                 rows="3"></textarea></div>
-                        <div class="btn-group"><button type="submit" class="btn btn-success">💾 Save Dental Record /
-                                I-save ang Tala</button></div>
+                        <div class="btn-group"><button type="submit" class="btn btn-success">💾 Save Dental Record</button></div>
                     </form>
                     <div id="saveStatus" class="hidden"></div>
                 </div>
 
                 <!-- Previous Records List -->
                 <div id="previousRecords" class="student-card hidden">
-                    <h3><span class="en">📋 Previous Visits / Nakaraang Pagbisita</span></h3>
+                    <h3><span class="en">📋 Previous Visits</span></h3>
                     <div id="recordsList" class="records-list"></div>
                 </div>
             </div>
