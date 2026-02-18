@@ -1,7 +1,7 @@
 // ==================== CONFIGURATION ====================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDyDOrWZamuNxeaIZ5CmCjRfcpIakz5PVy4riQBSWdcVrBcYMZAtUrJzgMJkT3TEfo1Q/exec';
 const DB_NAME = 'DentalOfflineDB';
-const DB_VERSION = 12; // increment to ensure fresh schema
+const DB_VERSION = 15; // increment to ensure fresh schema
 
 // ==================== GLOBAL VARIABLES ====================
 let db = null;
