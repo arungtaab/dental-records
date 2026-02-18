@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -31,6 +30,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         h1 span {
@@ -40,6 +40,58 @@
             border-radius: 30px;
             font-size: 0.5em;
             font-weight: 400;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .data-source {
+            background: white;
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-size: 0.9rem;
+            color: #6c757d;
+            border: 1px solid #dee2e6;
+        }
+
+        .data-source.online {
+            background: #d4edda;
+            color: #155724;
+            border-color: #28a745;
+        }
+
+        .data-source.offline {
+            background: #fff3cd;
+            color: #856404;
+            border-color: #ffc107;
+        }
+
+        .sync-btn {
+            background: #16697a;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-btn:active {
+            opacity: 0.8;
+        }
+
+        .sync-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .stats-grid {
@@ -154,13 +206,8 @@
         }
 
         @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
 
         .error {
@@ -214,25 +261,30 @@
         }
     </style>
 </head>
-
 <body>
     <div class="container">
-        <h1>📊 Dental Analytics Dashboard <span>Real‑Time</span></h1>
+        <h1>📊 Dental Analytics Dashboard <span>Offline‑Ready</span></h1>
+
+        <div class="status-bar">
+            <div id="dataSource" class="data-source">Loading...</div>
+            <button id="syncBtn" class="sync-btn" onclick="manualSync()">
+                <i class="fas fa-sync"></i> Sync from Server
+            </button>
+        </div>
+
         <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>Loading data from Google Sheets...</p>
+            <p>Loading data from local database...</p>
         </div>
+
         <div id="content" style="display: none;">
-            <!-- Overall stats -->
             <div class="stats-grid" id="overallStats"></div>
 
-            <!-- Treatments overview -->
             <div class="section">
                 <h2>🦷 Common Treatments</h2>
                 <div id="treatmentCards" class="treatment-grid"></div>
             </div>
 
-            <!-- School-wise table and chart -->
             <div class="section">
                 <h2>🏫 School Performance</h2>
                 <div style="overflow-x: auto;">
@@ -258,15 +310,53 @@
                 </div>
             </div>
         </div>
+
         <div id="error" class="error" style="display: none;"></div>
     </div>
-    <script>
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDyDOrWZamuNxeaIZ5CmCjRfcpIakz5PVy4riQBSWdcVrBcYMZAtUrJzgMJkT3TEfo1Q/exec';
 
-        // Helper: count comma‑separated FDI list
+    <!-- Font Awesome for icons (optional) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js"></script>
+
+    <script>
+        // ==================== CONFIGURATION ====================
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwDyDOrWZamuNxeaIZ5CmCjRfcpIakz5PVy4riQBSWdcVrBcYMZAtUrJzgMJkT3TEfo1Q/exec';
+        const DB_NAME = 'DentalOfflineDB';
+        const DB_VERSION = 10; // must match the version used in main app
+
+        // ==================== GLOBAL VARIABLES ====================
+        let db = null;
+        let currentStats = null;
+
+        // ==================== INDEXEDDB HELPERS ====================
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                // If the database doesn't exist, we just resolve with the new db
+                request.onupgradeneeded = () => {
+                    // No need to create stores here – they should already exist from main app
+                };
+            });
+        }
+
+        async function getAllExams() {
+            await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('exams', 'readonly');
+                const store = tx.objectStore('exams');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // ==================== DATA PROCESSING ====================
         function countFDIList(str) {
             if (str === null || str === undefined) return 0;
-            // Convert to string first
             const s = String(str).trim();
             if (s === '') return 0;
             return s.split(',').filter(item => item.trim() !== '').length;
@@ -278,6 +368,223 @@
             return v === 'yes' || v === 'oo' || v === 'yes/oo' || v === 'true';
         }
 
+        function processExams(exams) {
+            const studentSet = new Set();
+            const schoolData = {};
+            let totalVisits = 0;
+            let totalDMFT = 0;
+            let cavityFreeCount = 0;
+            let totalExtractions = 0, totalFillings = 0, totalCleanings = 0, totalFluoride = 0, totalConsultations = 0;
+
+            exams.forEach(exam => {
+                const row = exam.data; // the actual record is inside exam.data
+                if (!row) return;
+
+                const name = row.completeName || row.name || '';
+                const dob = row.dob || '';
+                const school = row.school || 'Unknown';
+                if (!name || !school) return;
+
+                const studentKey = `${name}|${dob}|${school}`;
+                studentSet.add(studentKey);
+
+                const decayed = countFDIList(row.toothDecayed);
+                const missing = countFDIList(row.toothMissing);
+                const filled = countFDIList(row.toothFilling);
+                const dmft = decayed + missing + filled;
+                totalDMFT += dmft;
+
+                if (decayed === 0) cavityFreeCount++;
+
+                const extractions = countFDIList(row.toothExtraction);
+                const fillings = filled;
+                const cleaning = row.cleaningNotes ? 1 : 0;
+                const fluoride = isYes(row.fluoride) ? 1 : 0;
+                const consult = isYes(row.dentalConsultations) ? 1 : 0;
+
+                totalExtractions += extractions;
+                totalFillings += fillings;
+                totalCleanings += cleaning;
+                totalFluoride += fluoride;
+                totalConsultations += consult;
+
+                if (!schoolData[school]) {
+                    schoolData[school] = {
+                        students: new Set(),
+                        visits: 0,
+                        dmftSum: 0,
+                        cavityFreeVisits: 0,
+                        extractions: 0,
+                        fillings: 0,
+                        cleanings: 0,
+                        fluoride: 0
+                    };
+                }
+                const s = schoolData[school];
+                s.students.add(studentKey);
+                s.visits++;
+                s.dmftSum += dmft;
+                if (decayed === 0) s.cavityFreeVisits++;
+                s.extractions += extractions;
+                s.fillings += fillings;
+                s.cleanings += cleaning;
+                s.fluoride += fluoride;
+            });
+
+            totalVisits = exams.length;
+            const uniquePatients = studentSet.size;
+            const avgDMFT = totalVisits ? (totalDMFT / totalVisits).toFixed(2) : 0;
+            const cavityFreePercent = totalVisits ? ((cavityFreeCount / totalVisits) * 100).toFixed(1) : 0;
+
+            const schoolArray = Object.entries(schoolData).map(([name, data]) => {
+                const studentCount = data.students.size;
+                const avgDMFT = data.visits ? (data.dmftSum / data.visits).toFixed(2) : 0;
+                const cavityFreePct = data.visits ? ((data.cavityFreeVisits / data.visits) * 100).toFixed(1) : 0;
+                return {
+                    name,
+                    studentCount,
+                    visits: data.visits,
+                    avgDMFT: parseFloat(avgDMFT),
+                    cavityFreePct: parseFloat(cavityFreePct),
+                    extractions: data.extractions,
+                    fillings: data.fillings,
+                    cleanings: data.cleanings,
+                    fluoride: data.fluoride
+                };
+            }).sort((a, b) => b.visits - a.visits);
+
+            return {
+                uniquePatients,
+                totalVisits,
+                avgDMFT: parseFloat(avgDMFT),
+                cavityFreePercent: parseFloat(cavityFreePercent),
+                totalExtractions,
+                totalFillings,
+                totalCleanings,
+                totalFluoride,
+                totalConsultations,
+                schoolArray
+            };
+        }
+
+        // ==================== RENDERING ====================
+        function renderDashboard(stats) {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').style.display = 'block';
+
+            document.getElementById('overallStats').innerHTML = `
+                <div class="stat-card"><h3>🧑‍🎓 Patients</h3><div class="value">${stats.uniquePatients}</div><div class="unit">unique students</div></div>
+                <div class="stat-card"><h3>📋 Visits</h3><div class="value">${stats.totalVisits}</div><div class="unit">total examinations</div></div>
+                <div class="stat-card"><h3>📊 Avg DMFT</h3><div class="value">${stats.avgDMFT}</div><div class="unit">per visit</div></div>
+                <div class="stat-card"><h3>🦷 Cavity‑Free</h3><div class="value">${stats.cavityFreePercent}%</div><div class="unit">of visits</div></div>
+            `;
+
+            document.getElementById('treatmentCards').innerHTML = `
+                <div class="treatment-item"><div class="count">${stats.totalExtractions}</div><div class="label">Extractions</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalFillings}</div><div class="label">Fillings</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalCleanings}</div><div class="label">Cleanings</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalFluoride}</div><div class="label">Fluoride</div></div>
+                <div class="treatment-item"><div class="count">${stats.totalConsultations}</div><div class="label">Consultations</div></div>
+            `;
+
+            const tbody = document.getElementById('schoolTableBody');
+            tbody.innerHTML = stats.schoolArray.map(s => `
+                <tr>
+                    <td><strong>${s.name}</strong></td>
+                    <td>${s.studentCount}</td>
+                    <td>${s.visits}</td>
+                    <td>${s.avgDMFT.toFixed(2)}</td>
+                    <td>${s.cavityFreePct.toFixed(1)}%</td>
+                    <td>${s.extractions}</td>
+                    <td>${s.fillings}</td>
+                    <td>${s.cleanings}</td>
+                    <td>${s.fluoride}</td>
+                </tr>
+            `).join('');
+
+            const ctx = document.getElementById('schoolChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: stats.schoolArray.map(s => s.name),
+                    datasets: [{
+                        label: 'Average DMFT',
+                        data: stats.schoolArray.map(s => s.avgDMFT),
+                        backgroundColor: '#489fb5',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        title: { display: true, text: 'Average DMFT per School' }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'DMFT' } }
+                    }
+                }
+            });
+        }
+
+        // ==================== FETCH FROM INDEXEDDB ====================
+        async function loadFromLocal() {
+            try {
+                const exams = await getAllExams();
+                console.log(`Loaded ${exams.length} exams from local DB`);
+                const stats = processExams(exams);
+                currentStats = stats;
+                renderDashboard(stats);
+                updateDataSource('local');
+            } catch (error) {
+                console.error('Error loading from local DB:', error);
+                document.getElementById('loading').style.display = 'none';
+                const errorDiv = document.getElementById('error');
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = '❌ Failed to load local data: ' + error.message;
+            }
+        }
+
+        // ==================== FETCH FROM SERVER (optional sync) ====================
+        async function fetchFromServer() {
+            const syncBtn = document.getElementById('syncBtn');
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'getAll');
+
+                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
+                const responseText = await response.text();
+                console.log('Raw response:', responseText);
+
+                let result;
+                try {
+                    result = JSON.parse(responseText);
+                } catch (e) {
+                    throw new Error('Response is not valid JSON: ' + responseText.substring(0, 200));
+                }
+
+                if (!result.success || !Array.isArray(result.records)) {
+                    throw new Error('Invalid response structure: ' + JSON.stringify(result));
+                }
+
+                // Here you could optionally update IndexedDB with the fresh records
+                // For simplicity, we just process and display them
+                const stats = processRecords(result.records); // using original processRecords
+                renderDashboard(stats);
+                updateDataSource('server');
+            } catch (err) {
+                alert('Sync failed: ' + err.message);
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = '<i class="fas fa-sync"></i> Sync from Server';
+            }
+        }
+
+        // For processing server records (same as old function)
         function processRecords(records) {
             const studentSet = new Set();
             const schoolData = {};
@@ -374,98 +681,27 @@
             };
         }
 
-        function renderDashboard(stats) {
-            document.getElementById('loading').style.display = 'none';
-            document.getElementById('content').style.display = 'block';
-
-            document.getElementById('overallStats').innerHTML = `
-            <div class="stat-card"><h3>🧑‍🎓 Patients</h3><div class="value">${stats.uniquePatients}</div><div class="unit">unique students</div></div>
-            <div class="stat-card"><h3>📋 Visits</h3><div class="value">${stats.totalVisits}</div><div class="unit">total examinations</div></div>
-            <div class="stat-card"><h3>📊 Avg DMFT</h3><div class="value">${stats.avgDMFT}</div><div class="unit">per visit</div></div>
-            <div class="stat-card"><h3>🦷 Cavity‑Free</h3><div class="value">${stats.cavityFreePercent}%</div><div class="unit">of visits</div></div>
-        `;
-
-            document.getElementById('treatmentCards').innerHTML = `
-            <div class="treatment-item"><div class="count">${stats.totalExtractions}</div><div class="label">Extractions</div></div>
-            <div class="treatment-item"><div class="count">${stats.totalFillings}</div><div class="label">Fillings</div></div>
-            <div class="treatment-item"><div class="count">${stats.totalCleanings}</div><div class="label">Cleanings</div></div>
-            <div class="treatment-item"><div class="count">${stats.totalFluoride}</div><div class="label">Fluoride</div></div>
-            <div class="treatment-item"><div class="count">${stats.totalConsultations}</div><div class="label">Consultations</div></div>
-        `;
-
-            const tbody = document.getElementById('schoolTableBody');
-            tbody.innerHTML = stats.schoolArray.map(s => `
-            <tr>
-                <td><strong>${s.name}</strong></td>
-                <td>${s.studentCount}</td>
-                <td>${s.visits}</td>
-                <td>${s.avgDMFT.toFixed(2)}</td>
-                <td>${s.cavityFreePct.toFixed(1)}%</td>
-                <td>${s.extractions}</td>
-                <td>${s.fillings}</td>
-                <td>${s.cleanings}</td>
-                <td>${s.fluoride}</td>
-            </tr>
-        `).join('');
-
-            const ctx = document.getElementById('schoolChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: stats.schoolArray.map(s => s.name),
-                    datasets: [{
-                        label: 'Average DMFT',
-                        data: stats.schoolArray.map(s => s.avgDMFT),
-                        backgroundColor: '#489fb5',
-                        borderRadius: 8
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        title: { display: true, text: 'Average DMFT per School' }
-                    },
-                    scales: {
-                        y: { beginAtZero: true, title: { display: true, text: 'DMFT' } }
-                    }
-                }
-            });
-        }
-
-        async function fetchData() {
-            try {
-                const formData = new FormData();
-                formData.append('action', 'getAll');
-
-                const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: formData });
-                const responseText = await response.text(); // get raw text first
-                console.log('Raw response:', responseText); // for debugging
-
-                let result;
-                try {
-                    result = JSON.parse(responseText);
-                } catch (e) {
-                    throw new Error('Response is not valid JSON: ' + responseText.substring(0, 200));
-                }
-
-                if (!result.success || !Array.isArray(result.records)) {
-                    throw new Error('Invalid response structure: ' + JSON.stringify(result));
-                }
-
-                const stats = processRecords(result.records);
-                renderDashboard(stats);
-            } catch (err) {
-                document.getElementById('loading').style.display = 'none';
-                const errorDiv = document.getElementById('error');
-                errorDiv.style.display = 'block';
-                errorDiv.textContent = '❌ Failed to load data: ' + err.message;
+        // ==================== UI HELPERS ====================
+        function updateDataSource(source) {
+            const el = document.getElementById('dataSource');
+            if (source === 'local') {
+                el.className = 'data-source offline';
+                el.innerHTML = '📀 Using local data (offline mode)';
+            } else {
+                el.className = 'data-source online';
+                el.innerHTML = '☁️ Using live server data';
             }
         }
 
-        window.onload = fetchData;
+        async function manualSync() {
+            await fetchFromServer();
+        }
+
+        // ==================== INIT ====================
+        window.onload = async function() {
+            // First try to load from local DB
+            await loadFromLocal();
+        };
     </script>
 </body>
-
 </html>
