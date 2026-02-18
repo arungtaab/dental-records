@@ -598,14 +598,29 @@ function displayPreviousExams(exams) {
     if (!container || !prevDiv || !exams.length) return;
 
     container.innerHTML = exams.map(exam => {
-        const examStr = JSON.stringify(exam.data || exam).replace(/'/g, "&#39;");
+        const examData = exam.data || exam;
+        const examStr = JSON.stringify(examData).replace(/'/g, "&#39;");
+        const oralNotes = examData.oralExamNotes || '';
+        const remarks = examData.remarks || '';
+        let notesPreview = '';
+        if (remarks) {
+            notesPreview = '💬 ' + (remarks.length > 25 ? remarks.substring(0,25) + '…' : remarks);
+        } else if (oralNotes) {
+            notesPreview = '📝 ' + (oralNotes.length > 25 ? oralNotes.substring(0,25) + '…' : oralNotes);
+        }
+        else {
+            notesPreview = '—';
+        }
         return `
             <div class="record-item" onclick='loadExam(${examStr})'>
                 <div class="record-date">${new Date(exam.date).toLocaleDateString()}</div>
-                <div>Extraction: ${(exam.data || exam).toothExtraction || '—'}</div>
-                <div>Filling: ${(exam.data || exam).toothFilling || '—'}</div>
-                <div>Decayed: ${(exam.data || exam).toothDecayed || '—'}</div>
-                <div>Missing: ${(exam.data || exam).toothMissing || '—'}</div>
+                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 5px 0;">
+                    <span>🦷 E:${examData.toothExtraction || '0'}</span>
+                    <span>🔧 F:${examData.toothFilling || '0'}</span>
+                    <span>⚠️ D:${examData.toothDecayed || '0'}</span>
+                    <span>❌ M:${examData.toothMissing || '0'}</span>
+                </div>
+                <div class="notes-preview" style="font-style: italic; color: #555; font-size: 0.9em;">${notesPreview}</div>
             </div>
         `;
     }).join('');
