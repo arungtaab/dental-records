@@ -76,14 +76,14 @@ This project is a static site that can be run locally or hosted on any static we
 ### Project Structure
 
 dental-records/
-├── index.html              # Main entry point, contains the three-tab structure
-├── styles.css              # All styles for the main application
-├── app.js                  # Core application logic for Tab 1 (Patients & Exams)
-├── sw.js                   # Service worker for offline caching
-├── manifest.json           # PWA manifest for installability
-├── analysis-dashboard/     # Standalone dashboard for Tab 2
+├── index.html                # Main entry point, contains the three-tab structure
+├── styles.css                # All styles for the main application
+├── app.js                    # Core application logic for Tab 1 (Patients & Exams)
+├── sw.js                     # Service worker for offline caching
+├── manifest.json             # PWA manifest for installability
+├── analysis-dashboard/       # Standalone dashboard for Tab 2
 │   └── index.html
-├── booking-system/         # Standalone booking system for Tab 3
+├── booking-system/           # Standalone booking system for Tab 3
 │   └── index.html
 └── README.md
 
