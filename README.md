@@ -4,7 +4,7 @@
 [![GitHub Stars](https://img.shields.io/github/stars/arungtaab/dental-records?style=social)](https://github.com/arungtaab/dental-records/stargazers)
 ![Language](https://img.shields.io/github/languages/top/arungtaab/dental-records)
 ![Status](https://img.shields.io/badge/status-in%20progress-yellow)
-
+ 
 
 
 An **offline-first, Progressive Web App** designed for dental health outreach in the remote barangays of Jagna, Bohol, Philippines. This system enables community health workers and visiting medical teams to record patient examinations without an internet connection, automatically syncing data to a central Google Sheet when connectivity is restored.
