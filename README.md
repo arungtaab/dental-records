@@ -100,7 +100,7 @@ dental-records/
 4. **Offline Use:**
    The app works exactly the same without an internet connection. Any records you save will appear in the "Previous Records" list and will be synced automatically the next time you are online.
 
-###Testing the Sync & Offline Functionality
+### Testing the Sync & Offline Functionality
 **Online:** Add a new patient and a dental exam. Check your Google Sheet to confirm the data appears.
 
 **Offline:** Put your browser in offline mode (or turn off your WiFi). Refresh the page and search for the patient you added. Their information and previous exams should still be visible.
