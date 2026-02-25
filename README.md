@@ -10,7 +10,7 @@
 An **offline-first, Progressive Web App** designed for dental health outreach in the remote barangays of Jagna, Bohol, Philippines. This system enables community health workers and visiting medical teams to record patient examinations without an internet connection, automatically syncing data to a central Google Sheet when connectivity is restored.
 
 
-## 📖 The Story & Problem
+## The Story & Problem
 
 Operating in Jagna, Bohol presents unique challenges:
 - **Geographic Dispersion:** Patients are spread across mountainous upland barangays, often over 40 minutes from the town center.
