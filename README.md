@@ -7,7 +7,7 @@
 
 An **offline-first, bilingual Progressive Web App** designed for dental health outreach in the remote barangays of Jagna, Bohol, Philippines. This system enables community health workers and visiting medical teams to record patient examinations without an internet connection, automatically syncing data to a central Google Sheet when connectivity is restored.
 
-![Project Screenshot](https://via.placeholder.com/800x400?text=Student+Dental+Records+System+Screenshot)
+![Project Screenshot]()
 
 ## 📖 The Story & Problem
 
